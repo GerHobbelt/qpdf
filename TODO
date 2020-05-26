@@ -1,6 +1,9 @@
 Soon
 ====
 
+* Update manual to clearly state qpdf's exit codes including mention
+  of not exiting with code 1.
+
 * Take flattenRotation code from pdf-split and do something with it,
   maybe adding it to the library. Once there, call it from pdf-split
   and bump up the required version of qpdf.
