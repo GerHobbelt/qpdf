@@ -1,6 +1,11 @@
 Soon
 ====
 
+* Make it possible for StreamDataProvider to modify the stream
+  dictionary in addition to the stream data so it can calculate things
+  about the dictionary at runtime. Will require a small change to
+  QPDFWriter.
+
 * Update manual to clearly state qpdf's exit codes including mention
   of not exiting with code 1.
 
