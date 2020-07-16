@@ -1,6 +1,8 @@
 Soon
 ====
 
+* Remember to check work `qpdf` project for private issues
+
 * Make it possible for StreamDataProvider to modify the stream
   dictionary in addition to the stream data so it can calculate things
   about the dictionary at runtime. Will require a small change to
