@@ -457,7 +457,7 @@ static int realmain(int argc, char* argv[])
     whoami = QUtil::getWhoami(argv[0]);
     QUtil::setLineBuf(stdout);
     char const* filename = 0;
-    if (argc > 2)
+    if (argc < 1 || argc > 2)
     {
         usage();
     }
@@ -476,7 +476,7 @@ static int realmain(int argc, char* argv[])
         filename = argv[1];
     }
     std::list<std::string> lines;
-    if (filename == 0)
+    if (filename == 0 || strcmp(filename, "-") == 0)
     {
         filename = "standard input";
         QUtil::binary_stdin();

@@ -70,14 +70,14 @@ void runtest(int n)
 
         QPDFPageDocumentHelper(pdf).addPage(page, true);
 
-	QPDFWriter w(pdf, "a.pdf");
-	w.setStaticID(true);
-	w.setStreamDataMode(qpdf_s_preserve);
-	w.write();
+	    QPDFWriter w(pdf, "a.pdf");
+	    w.setStaticID(true);
+	    w.setStreamDataMode(qpdf_s_preserve);
+	    w.write();
     }
     else
     {
-	throw std::runtime_error(std::string("invalid test ") +
+	    throw std::runtime_error(std::string("invalid test ") +
 				 QUtil::int_to_string(n));
     }
 
