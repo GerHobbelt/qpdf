@@ -1,13 +1,58 @@
+Soon
+====
+
+* Remember to check work `qpdf` project for private issues
+
+* Make it possible for StreamDataProvider to modify the stream
+  dictionary in addition to the stream data so it can calculate things
+  about the dictionary at runtime. Will require a small change to
+  QPDFWriter.
+
+* Update manual to clearly state qpdf's exit codes including mention
+  of not exiting with code 1.
+
+* Take flattenRotation code from pdf-split and do something with it,
+  maybe adding it to the library. Once there, call it from pdf-split
+  and bump up the required version of qpdf.
+
+* Externalize inline images doesn't walk into form XObjects. In
+  general:
+
+  * Check QPDFPageObjectHelper and see what can be applied to form
+    XObjects. Maybe think about generalizing it to work with form
+    XObjects.
+
+  * There is an increasing amount of logic in qpdf.cc that should
+    probably move into the library. This includes externalizing inline
+    images and page splitting as those operations become more
+    elaborate, particularly with handling of form XObjects.
+
+* Flattening of form XObjects seems like something that would be
+  useful in the library. We are seeing more cases of completely valid
+  PDF files with form XObjects that cause problems in other software.
+  Flattening of form XObjects could be a useful way to work around
+  those issues or to prepare files for additional processing, making
+  it possible for users of the qpdf library to not be concerned about
+  form XObjects. This could be done recursively; i.e., we could have a
+  method to embed a form XObject into whatever contains it, whether
+  that is a form XObject or a page. This would require more
+  significant interpretation of the content stream. We would need a
+  test file in which the placement of the form XObject has to be in
+  the right place, e.g., the form XObject partially obscures earlier
+  code and is partially obscured by later code.
+
+* See if the tokenizer is a performance bottleneck and, if so,
+  optimize it. We might end up with a high-performance tokenizer that
+  has a different interface but still ultimately creates the same
+  tokens.
+
+* See about tying lgtm.com into qpdf's CI.
+
+
 Fuzz Errors
 ===========
 
 * https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=<N>
-
-* To fix:
-  * 19253 - indirect leaks. Not sure of the cause, but it might have
-    something to do with multiple instances of the same object being
-    read and discarded during file recovery. Maybe there's a missing
-    call to releaseResolved.
 
 * Ignoring these:
   * Problems inside the jpeg library: 15470, 15751, 18633, 18732,
