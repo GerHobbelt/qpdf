@@ -19,16 +19,54 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\qpdf\build.mk" />
-    <None Include="..\qpdf\Makefile" />
-    <None Include="..\qpdf\qpdf.testcov" />
+    <None Include="..\.gitignore" />
+    <None Include="..\.travis.yml" />
+    <None Include="..\aclocal.m4" />
+    <None Include="..\Artistic-2.0" />
+    <None Include="..\autoconf.mk.in" />
+    <None Include="..\autofiles.sums" />
+    <None Include="..\autogen.sh" />
+    <None Include="..\azure-pipelines.yml" />
+    <None Include="..\ChangeLog" />
+    <None Include="..\config-mingw" />
+    <None Include="..\config-msvc" />
+    <None Include="..\config.guess" />
+    <None Include="..\config.sub" />
+    <None Include="..\configure" />
+    <None Include="..\configure.ac" />
+    <None Include="..\copy_dlls" />
+    <None Include="..\INSTALL" />
+    <None Include="..\install-sh" />
+    <None Include="..\ispell-words" />
+    <None Include="..\libqpdf.map.in" />
+    <None Include="..\libqpdf.pc.in" />
+    <None Include="..\libqpdf\bits.icc" />
+    <None Include="..\libqpdf\build.mk" />
+    <None Include="..\libqpdf\Makefile" />
+    <None Include="..\libqpdf\qpdf\qpdf-config.h.in" />
+    <None Include="..\ltmain.sh" />
+    <None Include="..\Makefile" />
+    <None Include="..\make_dist" />
+    <None Include="..\make_windows_releases" />
+    <None Include="..\make_windows_releases-finish" />
+    <None Include="..\mkinstalldirs" />
+    <None Include="..\NOTICE.md" />
+    <None Include="..\performance_check" />
+    <None Include="..\README-appimage.md" />
+    <None Include="..\README-hardening.md" />
+    <None Include="..\README-maintainer" />
+    <None Include="..\README-what-to-download.md" />
+    <None Include="..\README-windows.md" />
+    <None Include="..\README.md" />
+    <None Include="..\TODO" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\LICENSE.txt" />
+    <Text Include="..\README-windows-install.txt" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\CS\MuPDF\platform\win32\libthirdparty.vcxproj">
       <Project>{5edcf4fd-0291-4fb9-8d96-d58957ca5e3c}</Project>
-    </ProjectReference>
-    <ProjectReference Include="libqpdf.vcxproj">
-      <Project>{e74ffff0-fa43-4adc-b92c-6afa08e4a4aa}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -88,36 +126,164 @@
     <ClInclude Include="..\include\qpdf\QUtil.hh" />
     <ClInclude Include="..\include\qpdf\RandomDataProvider.hh" />
     <ClInclude Include="..\include\qpdf\Types.h" />
+    <ClInclude Include="..\libqpdf\qpdf\AES_PDF_native.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\BitStream.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\BitWriter.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\ContentNormalizer.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\CryptoRandomDataProvider.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\InsecureRandomDataProvider.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\MD5.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\MD5_native.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\OffsetInputSource.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\Pl_AES_PDF.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\Pl_ASCII85Decoder.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\Pl_ASCIIHexDecoder.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\Pl_LZWDecoder.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\Pl_MD5.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\Pl_PNGFilter.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\Pl_RC4.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\Pl_SHA2.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\Pl_TIFFPredictor.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\QPDFCrypto_gnutls.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\QPDFCrypto_native.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\QPDFCrypto_openssl.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\QPDFMatrix.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\QPDF_Array.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\QPDF_Bool.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\QPDF_Dictionary.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\QPDF_InlineImage.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\QPDF_Integer.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\QPDF_Name.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\QPDF_Null.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\QPDF_Operator.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\QPDF_Real.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\QPDF_Reserved.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\QPDF_Stream.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\QPDF_String.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\RC4.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\RC4_native.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\rijndael.h" />
+    <ClInclude Include="..\libqpdf\qpdf\SecureRandomDataProvider.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\SHA2_native.hh" />
+    <ClInclude Include="..\libqpdf\qpdf\SparseOHArray.hh" />
+    <ClInclude Include="..\libqpdf\sph\sph_sha2.h" />
+    <ClInclude Include="..\libqpdf\sph\sph_types.h" />
     <ClInclude Include="qpdf\qpdf-config.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\qpdf\qpdf.cc" />
+    <ClCompile Include="..\libqpdf\AES_PDF_native.cc" />
+    <ClCompile Include="..\libqpdf\BitStream.cc" />
+    <ClCompile Include="..\libqpdf\BitWriter.cc" />
+    <ClCompile Include="..\libqpdf\Buffer.cc" />
+    <ClCompile Include="..\libqpdf\BufferInputSource.cc" />
+    <ClCompile Include="..\libqpdf\ClosedFileInputSource.cc" />
+    <ClCompile Include="..\libqpdf\ContentNormalizer.cc" />
+    <ClCompile Include="..\libqpdf\CryptoRandomDataProvider.cc" />
+    <ClCompile Include="..\libqpdf\FileInputSource.cc" />
+    <ClCompile Include="..\libqpdf\InputSource.cc" />
+    <ClCompile Include="..\libqpdf\InsecureRandomDataProvider.cc" />
+    <ClCompile Include="..\libqpdf\JSON.cc" />
+    <ClCompile Include="..\libqpdf\MD5.cc" />
+    <ClCompile Include="..\libqpdf\MD5_native.cc" />
+    <ClCompile Include="..\libqpdf\OffsetInputSource.cc" />
+    <ClCompile Include="..\libqpdf\Pipeline.cc" />
+    <ClCompile Include="..\libqpdf\Pl_AES_PDF.cc" />
+    <ClCompile Include="..\libqpdf\Pl_ASCII85Decoder.cc" />
+    <ClCompile Include="..\libqpdf\Pl_ASCIIHexDecoder.cc" />
+    <ClCompile Include="..\libqpdf\Pl_Buffer.cc" />
+    <ClCompile Include="..\libqpdf\Pl_Concatenate.cc" />
+    <ClCompile Include="..\libqpdf\Pl_Count.cc" />
+    <ClCompile Include="..\libqpdf\Pl_DCT.cc" />
+    <ClCompile Include="..\libqpdf\Pl_Discard.cc" />
+    <ClCompile Include="..\libqpdf\Pl_Flate.cc" />
+    <ClCompile Include="..\libqpdf\Pl_LZWDecoder.cc" />
+    <ClCompile Include="..\libqpdf\Pl_MD5.cc" />
+    <ClCompile Include="..\libqpdf\Pl_PNGFilter.cc" />
+    <ClCompile Include="..\libqpdf\Pl_QPDFTokenizer.cc" />
+    <ClCompile Include="..\libqpdf\Pl_RC4.cc" />
+    <ClCompile Include="..\libqpdf\Pl_RunLength.cc" />
+    <ClCompile Include="..\libqpdf\Pl_SHA2.cc" />
+    <ClCompile Include="..\libqpdf\Pl_StdioFile.cc" />
+    <ClCompile Include="..\libqpdf\Pl_TIFFPredictor.cc" />
+    <ClCompile Include="..\libqpdf\qpdf-c.cc" />
+    <ClCompile Include="..\libqpdf\QPDF-cc.cc" />
+    <ClCompile Include="..\libqpdf\QPDFAcroFormDocumentHelper.cc" />
+    <ClCompile Include="..\libqpdf\QPDFAnnotationObjectHelper.cc" />
+    <ClCompile Include="..\libqpdf\QPDFCryptoProvider.cc" />
+    <ClCompile Include="..\libqpdf\QPDFCrypto_gnutls.cc" />
+    <ClCompile Include="..\libqpdf\QPDFCrypto_native.cc" />
+    <ClCompile Include="..\libqpdf\QPDFCrypto_openssl.cc" />
+    <ClCompile Include="..\libqpdf\QPDFExc.cc" />
+    <ClCompile Include="..\libqpdf\QPDFFormFieldObjectHelper.cc" />
+    <ClCompile Include="..\libqpdf\QPDFMatrix.cc" />
+    <ClCompile Include="..\libqpdf\QPDFNameTreeObjectHelper.cc" />
+    <ClCompile Include="..\libqpdf\QPDFNumberTreeObjectHelper.cc" />
+    <ClCompile Include="..\libqpdf\QPDFObject.cc" />
+    <ClCompile Include="..\libqpdf\QPDFObjectHandle.cc" />
+    <ClCompile Include="..\libqpdf\QPDFObjGen.cc" />
+    <ClCompile Include="..\libqpdf\QPDFOutlineDocumentHelper.cc" />
+    <ClCompile Include="..\libqpdf\QPDFOutlineObjectHelper.cc" />
+    <ClCompile Include="..\libqpdf\QPDFPageDocumentHelper.cc" />
+    <ClCompile Include="..\libqpdf\QPDFPageLabelDocumentHelper.cc" />
+    <ClCompile Include="..\libqpdf\QPDFPageObjectHelper.cc" />
+    <ClCompile Include="..\libqpdf\QPDFSystemError.cc" />
+    <ClCompile Include="..\libqpdf\QPDFTokenizer.cc" />
+    <ClCompile Include="..\libqpdf\QPDFWriter.cc" />
+    <ClCompile Include="..\libqpdf\QPDFXRefEntry.cc" />
+    <ClCompile Include="..\libqpdf\QPDF_Array.cc" />
+    <ClCompile Include="..\libqpdf\QPDF_Bool.cc" />
+    <ClCompile Include="..\libqpdf\QPDF_Dictionary.cc" />
+    <ClCompile Include="..\libqpdf\QPDF_encryption.cc" />
+    <ClCompile Include="..\libqpdf\QPDF_InlineImage.cc" />
+    <ClCompile Include="..\libqpdf\QPDF_Integer.cc" />
+    <ClCompile Include="..\libqpdf\QPDF_linearization.cc" />
+    <ClCompile Include="..\libqpdf\QPDF_Name.cc" />
+    <ClCompile Include="..\libqpdf\QPDF_Null.cc" />
+    <ClCompile Include="..\libqpdf\QPDF_Operator.cc" />
+    <ClCompile Include="..\libqpdf\QPDF_optimization.cc" />
+    <ClCompile Include="..\libqpdf\QPDF_pages.cc" />
+    <ClCompile Include="..\libqpdf\QPDF_Real.cc" />
+    <ClCompile Include="..\libqpdf\QPDF_Reserved.cc" />
+    <ClCompile Include="..\libqpdf\QPDF_Stream.cc" />
+    <ClCompile Include="..\libqpdf\QPDF_String.cc" />
+    <ClCompile Include="..\libqpdf\QTC.cc" />
+    <ClCompile Include="..\libqpdf\QUtil.cc" />
+    <ClCompile Include="..\libqpdf\RC4.cc" />
+    <ClCompile Include="..\libqpdf\RC4_native.cc" />
+    <ClCompile Include="..\libqpdf\rijndael.cc" />
+    <ClCompile Include="..\libqpdf\SecureRandomDataProvider.cc" />
+    <ClCompile Include="..\libqpdf\sha2.c" />
+    <ClCompile Include="..\libqpdf\sha2big.c" />
+    <ClCompile Include="..\libqpdf\SHA2_native.cc" />
+    <ClCompile Include="..\libqpdf\SparseOHArray.cc" />
+    <ClCompile Include="..\libqpdf\sph\md_helper.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{84E4CC46-896A-4A20-B5BE-B55851A17A14}</ProjectGuid>
+    <ProjectGuid>{E74FFFF0-FA43-4ADC-B92C-6AFA08E4A4AA}</ProjectGuid>
     <RootNamespace>qpdf</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>true</UseDebugLibraries>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>true</UseDebugLibraries>

@@ -1,5 +1,10 @@
 /* libqpdf/qpdf/qpdf-config.h.in.  Generated from configure.ac by autoheader.  */
 
+#ifndef __QPDF_CONFIG_H__
+#define __QPDF_CONFIG_H__
+
+
+
 /* Whether to avoid use of HANDLE in Windows */
 #undef AVOID_WINDOWS_HANDLE
 
@@ -109,3 +114,7 @@
 
 /* Define for large files, on AIX-style hosts. */
 #undef _LARGE_FILES
+
+
+
+#endif

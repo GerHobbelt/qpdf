@@ -21,7 +21,6 @@
   <ItemGroup>
     <None Include="..\qpdf\build.mk" />
     <None Include="..\qpdf\Makefile" />
-    <None Include="..\qpdf\qpdf.testcov" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\CS\MuPDF\platform\win32\libthirdparty.vcxproj">
@@ -91,10 +90,10 @@
     <ClInclude Include="qpdf\qpdf-config.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\qpdf\qpdf.cc" />
+    <ClCompile Include="..\qpdf\test_driver.cc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{84E4CC46-896A-4A20-B5BE-B55851A17A14}</ProjectGuid>
+    <ProjectGuid>{3F9617B5-EAEF-46DF-9D23-0C8792275EF0}</ProjectGuid>
     <RootNamespace>qpdf</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

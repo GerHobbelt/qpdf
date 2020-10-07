@@ -4,8 +4,8 @@
     <Filter Include="include">
       <UniqueIdentifier>{f2c665a6-ed5f-413e-bd58-576cde97676f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="qpdf">
-      <UniqueIdentifier>{45d649e3-d448-4388-81db-f1b90cc4915c}</UniqueIdentifier>
+    <Filter Include="zlib-flate">
+      <UniqueIdentifier>{06d2612e-3e19-4a11-8828-a1e1486a7f60}</UniqueIdentifier>
     </Filter>
     <Filter Include="win32">
       <UniqueIdentifier>{19134505-0bba-4d9a-8c74-ec516ebc9f94}</UniqueIdentifier>
@@ -18,14 +18,11 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\qpdf\build.mk">
-      <Filter>qpdf</Filter>
+    <None Include="..\zlib-flate\build.mk">
+      <Filter>zlib-flate</Filter>
     </None>
-    <None Include="..\qpdf\Makefile">
-      <Filter>qpdf</Filter>
-    </None>
-    <None Include="..\qpdf\qpdf.testcov">
-      <Filter>qpdf</Filter>
+    <None Include="..\zlib-flate\Makefile">
+      <Filter>zlib-flate</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -202,8 +199,8 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\qpdf\qpdf.cc">
-      <Filter>qpdf</Filter>
+    <ClCompile Include="..\zlib-flate\zlib-flate.cc">
+      <Filter>zlib-flate</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

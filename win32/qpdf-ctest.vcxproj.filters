@@ -202,7 +202,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\qpdf\qpdf.cc">
+    <ClCompile Include="..\qpdf\qpdf-ctest.c">
       <Filter>qpdf</Filter>
     </ClCompile>
   </ItemGroup>
