@@ -1801,7 +1801,7 @@
 
 	* 5.2.0: release
 
-	* libqpdf/QPDF.cc (read_xrefTable): Be tolerant of some malformed
+	* libqpdf/QPDF-cc.cc (read_xrefTable): Be tolerant of some malformed
 	xref tables that don't have the required trailing space after each
 	line.
 
@@ -2638,7 +2638,7 @@
 
 	* 2.2.3: release
 
-	* libqpdf/QPDF.cc (readObjectInternal): Accept the case of the
+	* libqpdf/QPDF-cc.cc (readObjectInternal): Accept the case of the
 	stream keyword being followed by carriage return by itself.  While
 	this is not permitted by the specification, there are PDF files
 	that do this, and other readers can read them.
@@ -2650,7 +2650,7 @@
 
 2011-01-31  Jay Berkenbilt  <ejb@ql.org>
 
-	* libqpdf/QPDF.cc (readObjectAtOffset): use -1 rather than 0 when
+	* libqpdf/QPDF-cc.cc (readObjectAtOffset): use -1 rather than 0 when
 	reading an object at a given to indicate that no object number is
 	expected.  This allows xref recovery to proceed even if a file
 	uses the invalid object number 0 as a regular object.
@@ -2681,7 +2681,7 @@
 
 2010-09-24  Jay Berkenbilt  <ejb@ql.org>
 
-	* libqpdf/QPDF.cc: change private "file" method to be a
+	* libqpdf/QPDF-cc.cc: change private "file" method to be a
 	PointerHolder<InputSource> to prepare qpdf for being able to work
 	with PDF files loaded into memory in addition to working with
 	files on disk.
@@ -2693,7 +2693,7 @@
 
 2010-09-05  Jay Berkenbilt  <ejb@ql.org>
 
-	* libqpdf/QPDF.cc (readObjectInternal): Recognize empty objects
+	* libqpdf/QPDF-cc.cc (readObjectInternal): Recognize empty objects
 	and treat them as null.
 
 	* libqpdf/QPDF_Stream.cc (filterable): Handle inline image filter
@@ -2806,7 +2806,7 @@
 
 	* 2.1: release
 
-	* libqpdf/QPDF.cc: be more forgiving of extraneous whitespace in
+	* libqpdf/QPDF-cc.cc: be more forgiving of extraneous whitespace in
 	the xref table and while recovering from error conditions.
 
 2009-10-26  Jay Berkenbilt  <ejb@ql.org>
@@ -2865,7 +2865,7 @@
 	arguments to qpdf to set the minimum output PDF version and also
 	to force the version to a particular value.
 
-	* libqpdf/QPDF.cc (processXRefStream): warn and ignore extra xref
+	* libqpdf/QPDF-cc.cc (processXRefStream): warn and ignore extra xref
 	stream entries when stream is larger than reported size.  This
 	used to be a fatal error.  (Fixes qpdf-Bugs-2872265.)
 
@@ -2924,7 +2924,7 @@
 	setSuppressOriginalObjectIDs() method to QPDFWriter to turn this
 	behavior off.
 
-	* libqpdf/QPDF.cc (QPDF::pipeStreamData): Issue a warning instead
+	* libqpdf/QPDF-cc.cc (QPDF::pipeStreamData): Issue a warning instead
 	of failing if there is a problem found while decoding stream.
 
 	* qpdf/qpdf.cc: Exit with a status of 3 if warnings were found
@@ -2941,7 +2941,7 @@
 	* qpdf/qpdf.cc: in --check mode, if there are warnings but no
 	errors, exit with a status of 3.
 
-	* libqpdf/QPDF.cc (QPDF::insertXrefEntry): when recovering the
+	* libqpdf/QPDF-cc.cc (QPDF::insertXrefEntry): when recovering the
 	cross-reference table, have objects we encounter later in the file
 	supersede those we found earlier.  This improves the chances of
 	being able to recover appended files with damaged cross-reference

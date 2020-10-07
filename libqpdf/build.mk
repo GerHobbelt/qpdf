@@ -53,7 +53,7 @@ SRCS_libqpdf = \
 	libqpdf/Pl_SHA2.cc \
 	libqpdf/Pl_StdioFile.cc \
 	libqpdf/Pl_TIFFPredictor.cc \
-	libqpdf/QPDF.cc \
+	libqpdf/QPDF-cc.cc \
 	libqpdf/QPDFAcroFormDocumentHelper.cc \
 	libqpdf/QPDFAnnotationObjectHelper.cc \
 	libqpdf/QPDFCryptoProvider.cc \

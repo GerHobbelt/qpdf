@@ -1,33 +1,41 @@
-ROUTINE DEVELOPMENT
+# ROUTINE DEVELOPMENT
 
 **Remember to check pull requests as well as issues in github.**
 
 Default:
 
+```
 ./configure CXX="g++ --std=c++11" --enable-werror
+```
 
 Debugging:
 
+```
 ./configure CXX="g++ --std=c++11" CFLAGS="-g" CXXFLAGS="-g" \
    --enable-werror --disable-shared
+```
 
 Profiling:
 
+```
 ./configure CXX="g++ --std=c++11" CFLAGS="-g -pg" CXXFLAGS="-g -pg" \
    LDFLAGS="-pg" --enable-werror --disable-shared
+```
 
 Then run `gprof gmon.out`. Note that gmon.out is not cumulative.
 
 Memory checks:
 
+```
 ./configure CFLAGS="-fsanitize=address -fsanitize=undefined -g" \
    CXXFLAGS="-fsanitize=address -fsanitize=undefined -g" \
    LDFLAGS="-fsanitize=address -fsanitize=undefined" \
    CC=clang CXX="clang++ --std=c++11" \
    --enable-werror --disable-shared
+```
 
 
-GOOGLE OSS-FUZZ
+# GOOGLE OSS-FUZZ
 
 * See ../misc/fuzz (not in repo) for unfixed, downloaded fuzz test cases
 
@@ -41,22 +49,28 @@ GOOGLE OSS-FUZZ
   Add `-e GITHUB_FORK=fork -e GITHUB_BRANCH=branch` to build_fuzzers
   from a qpdf fork/branch rather than qpdf/master.
 
+  ```
   python infra/helper.py build_image --pull qpdf
   python infra/helper.py build_fuzzers [ --sanitizer memory|undefined|address ] qpdf
   python infra/helper.py check_build qpdf
   python infra/helper.py build_fuzzers --sanitizer coverage qpdf
   python infra/helper.py coverage qpdf
+  ```
 
   To reproduce a test case, build with the correct sanitizer, then run
 
+  ```
   python infra/helper.py reproduce qpdf fuzzer testcase
+  ```
 
   where fuzzer is the fuzzer used in the crash.
 
   The fuzzer is in build/out/qpdf. It can be run with a directory as
   an argument to run against files in a directory. You can use
 
+  ```
   qpdf_fuzzer -merge=1 cur new >& /dev/null&
+  ```
 
   to add any files from new into cur if they increase coverage. You
   need to do this with the coverage build (the one with
@@ -72,7 +86,7 @@ GOOGLE OSS-FUZZ
   gs://qpdf-backup.clusterfuzz-external.appspot.com/corpus/libFuzzer/qpdf_fuzzer/latest.zip
 
 
-CODING RULES
+# CODING RULES
 
 * Avoid atoi. Use QUtil::string_to_int instead. It does
   overflow/underflow checking.
@@ -93,7 +107,7 @@ CODING RULES
   public classes. Remember to use QPDF_DLL on ~Members().
 
 
-RELEASE PREPARATION
+# RELEASE PREPARATION
 
 * Each year, update copyright notices. Just do a case-insensitive
   search for copyright. Don't forget copyright in manual. Also update
@@ -113,12 +127,16 @@ RELEASE PREPARATION
 * Run a spelling checker over the source code to catch errors in
   variable names, strings, and comments.
 
+  ```
   ispell -p ispell-words **/*.hh **/*.cc manual/* ChangeLog README* TODO
+  ```
 
 * If needed, run large file and image comparison tests. Configure
   options:
 
---enable-test-compare-images --with-large-file-test-path=/path
+  ```
+  --enable-test-compare-images --with-large-file-test-path=/path
+  ```
 
   For Windows, use a Windows style path, not an MSYS path for large files.
 
@@ -143,6 +161,7 @@ RELEASE PREPARATION
     and follow directions for updating them.
 
   * Other files copied as indicated:
+  
     ```
     cp /usr/share/automake-1.11/install-sh .
     cp /usr/share/automake-1.11/mkinstalldirs .
@@ -181,18 +200,20 @@ RELEASE PREPARATION
 
 * Run pikepdf's test suite. Do this in a separate shell.
 
-cd ...qpdf-source-tree...
-export QPDF_SOURCE_TREE=$PWD
-export LD_LIBRARY_PATH=$QPDF_SOURCE_TREE/libqpdf/build/.libs
-cd /tmp/z
-git clone git@github.com:pikepdf/pikepdf
-virtualenv v
-source v/bin/activate
-cd pikepdf
-pip3 install -r requirements/test.txt
-rehash
-pip3 install .
-pytest -n auto
+  ```
+  cd ...qpdf-source-tree...
+  export QPDF_SOURCE_TREE=$PWD
+  export LD_LIBRARY_PATH=$QPDF_SOURCE_TREE/libqpdf/build/.libs
+  cd /tmp/z
+  git clone git@github.com:pikepdf/pikepdf
+  virtualenv v
+  source v/bin/activate
+  cd pikepdf
+  pip3 install -r requirements/test.txt
+  rehash
+  pip3 install .
+  pytest -n auto
+  ```
 
 * Update release notes in manual. Look at diffs and ChangeLog. Update
   release date in `manual/qpdf-manual.xml`. Remember to ensure that
@@ -201,7 +222,7 @@ pytest -n auto
 
 * Make sure version numbers are consistent in the following locations:
   * configure.ac
-  * libqpdf/QPDF.cc
+  * libqpdf/QPDF-cc.cc
   * manual/qpdf-manual.xml
   * qpdf/qpdf.cc
   `make_dist` verifies this consistency.
@@ -211,7 +232,7 @@ pytest -n auto
 * Add a release entry to ChangeLog.
 
 
-CREATING A RELEASE
+# CREATING A RELEASE
 
 * Push to master. The azure pipeline will create an artifact called
   distribution which will contain all the distribution files. Download
@@ -220,8 +241,10 @@ CREATING A RELEASE
 
 * Sign the source distribution:
 
-version=x.y.z
-gpg --detach-sign --armor qpdf-$version.tar.gz
+  ```
+  version=x.y.z
+  gpg --detach-sign --armor qpdf-$version.tar.gz
+  ```
 
 * Build and test the debian package
 
@@ -229,15 +252,17 @@ gpg --detach-sign --armor qpdf-$version.tar.gz
   Windows binaries, the AppImage, the source tarball, and the source
   tarball signature.
 
-\rm -f *.{md5,sha1,sha512}
-files=(*)
-for i in md5 sha1 sha512; do
-  ${i}sum ${files[*]} >| qpdf-$version.$i
-  gpg --clearsign --armor qpdf-$version.$i
-  mv qpdf-$version.$i.asc qpdf-$version.$i
-done
-chmod 444 *
-chmod 555 *.AppImage
+  ```
+  \rm -f *.{md5,sha1,sha512}
+  files=(*)
+  for i in md5 sha1 sha512; do
+    ${i}sum ${files[*]} >| qpdf-$version.$i
+    gpg --clearsign --armor qpdf-$version.$i
+    mv qpdf-$version.$i.asc qpdf-$version.$i
+  done
+  chmod 444 *
+  chmod 555 *.AppImage
+  ```
 
 * When creating releases on github and sourceforge, remember to copy
   `README-what-to-download.md` separately onto the download area if
@@ -248,9 +273,11 @@ chmod 555 *.AppImage
   arguments. Create and push a signed tag. This should be run with
   HEAD pointing to the tip of master.
 
-git rev-parse master upstream/master @
-git tag -s release-qpdf-$version @ -m"qpdf $version"
-git push upstream release-qpdf-$version
+  ```
+  git rev-parse master upstream/master @
+  git tag -s release-qpdf-$version @ -m"qpdf $version"
+  git push upstream release-qpdf-$version
+  ```
 
 * In Azure Pipelines, retain the build that was used to generate the
   release.
@@ -258,31 +285,37 @@ git push upstream release-qpdf-$version
 * Create a github release after pushing the tag. `gcurl` is an alias
   that includes the auth token.
 
-# Create release
-TOKEN=$(cat ~/.github-token)
-function gcurl() { curl -H "Authorization: token $TOKEN" ${1+"$@"}; }
-url=$(gcurl -s -XPOST https://api.github.com/repos/qpdf/qpdf/releases -d'{"tag_name": "release-qpdf-'$version'", "name": "qpdf '$version'", "draft": true}' | jq -r '.url')
+  ```
+  # Create release
+  TOKEN=$(cat ~/.github-token)
+  function gcurl() { curl -H "Authorization: token $TOKEN" ${1+"$@"}; }
+  url=$(gcurl -s -XPOST https://api.github.com/repos/qpdf/qpdf/releases -d'{"tag_name": "release-qpdf-'$version'", "name": "qpdf '$version'", "draft": true}' | jq -r '.url')
 
-# Get upload url
-upload_url=$(gcurl -s $url | jq -r '.upload_url' | sed -E -e 's/\{.*\}//')
-echo $upload_url
+  # Get upload url
+  upload_url=$(gcurl -s $url | jq -r '.upload_url' | sed -E -e 's/\{.*\}//')
+  echo $upload_url
 
-# Upload all the files. You can add a label attribute too, which
-# overrides the name.
-for i in *; do
-  mime=$(file -b --mime-type $i)
-  gcurl -H "Content-Type: $mime" --data-binary @$i "$upload_url?name=$i"
-done
+  # Upload all the files. You can add a label attribute too, which
+  # overrides the name.
+  for i in *; do
+    mime=$(file -b --mime-type $i)
+    gcurl -H "Content-Type: $mime" --data-binary @$i "$upload_url?name=$i"
+  done
+  ```
 
-If needed, go onto github and make any manual updates such as
-indicating a pre-release, adding release notes, etc.
+  If needed, go onto github and make any manual updates such as
+  indicating a pre-release, adding release notes, etc.
 
-# Publish release
-gcurl -XPOST $url -d'{"draft": false}'
+  ```
+  # Publish release
+  gcurl -XPOST $url -d'{"draft": false}'
+  ```
 
 * Upload files to sourceforge.
 
-rsync -vrlcO ./ jay_berkenbilt,qpdf@frs.sourceforge.net:/home/frs/project/q/qp/qpdf/qpdf/$version/
+  ```
+  rsync -vrlcO ./ jay_berkenbilt,qpdf@frs.sourceforge.net:/home/frs/project/q/qp/qpdf/qpdf/$version/
+  ```
 
 * On sourceforge, make the source package the default for all but
   Windows, and make the 32-bit mingw build the default for Windows.
@@ -293,23 +326,27 @@ rsync -vrlcO ./ jay_berkenbilt,qpdf@frs.sourceforge.net:/home/frs/project/q/qp/q
   documentation in the `files` subdirectory of the website on
   sourceforge.net.
 
-(cd /tmp; mkdir -p z; cd z; \
- tar xf ~/Q/storage/releases/qpdf/qpdf/$version/qpdf-$version.tar.gz qpdf-$version/doc; \
- scp -p qpdf-$version/doc/qpdf-* jay_berkenbilt,qpdf@frs.sourceforge.net:htdocs/files/)
+  ```
+  (cd /tmp; mkdir -p z; cd z; \
+   tar xf ~/Q/storage/releases/qpdf/qpdf/$version/qpdf-$version.tar.gz qpdf-$version/doc; \
+   scp -p qpdf-$version/doc/qpdf-* jay_berkenbilt,qpdf@frs.sourceforge.net:htdocs/files/)
+  ```
 
 * Upload the debian package and Ubuntu ppa backports.
 
 * Email the qpdf-announce list.
 
 
-OTHER NOTES
+# OTHER NOTES
 
 To construct a source distribution from a pristine checkout,
 `make_dist` does the following:
 
+```
 ./configure --enable-doc-maintenance --enable-werror
 make build_manual
 make distclean
+```
 
 To create a source release of external libs, do an export from the
 version control system into a directory called `qpdf-external-libs`
@@ -318,9 +355,11 @@ and just make a zip file of the result called
 information on creating binary external libs releases. Run this from
 the external-libs repository:
 
+```
 git archive --prefix=external-libs/ HEAD . | (cd /tmp; tar xf -)
 cd /tmp
 zip -r qpdf-external-libs-src.zip external-libs
+```
 
 When releasing on sourceforge, `external-libs` distributions go in
 `external-libs/yyyymmdd`, and qpdf distributions go in `qpdf/vvv`.
@@ -332,7 +371,7 @@ build-appimage, which passes it along to to docker, to skip the test
 suite, which useful for rapid iteration.
 
 
-GENERAL BUILD STUFF
+# GENERAL BUILD STUFF
 
 QPDF uses autoconf and libtool but does not use automake. The only
 files distributed with the qpdf source distribution that are not
@@ -354,7 +393,7 @@ If you want to run checks without rerunning the build, pass
 scenarios such as validation of memory fixes or binary compatibility.
 
 
-LOCAL WINDOWS TESTING PROCEDURE
+# LOCAL WINDOWS TESTING PROCEDURE
 
 This is what I do for routine testing on Windows.
 
