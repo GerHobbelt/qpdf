@@ -60,15 +60,25 @@ BufferInputSource::findAndSkipNextEOL()
 	return end_pos;
     }
 
+	// Use manual memory search instead of memchr('\r') + memchr('\n')
+	//
+	// On large files with predominantly \n line endings, memchr(..'\r'..)
+	// seems to waste a considerable amount of time searching for a line
+	// ending candidate that we don't need.
+	//
+	// On the Adobe PDF Reference Manual 1.7, this commit is 8x faster at
+	// QPDF::processMemoryFile().
+	//
     qpdf_offset_t result = 0;
-    size_t len = QIntC::to_size(end_pos - this->m->cur_offset);
     unsigned char const* buffer = this->m->buf->getBuffer();
+    unsigned char const* end = buffer + end_pos;
+    unsigned char const* p = buffer + this->m->cur_offset;
 
-    void* start = const_cast<unsigned char*>(buffer) + this->m->cur_offset;
-    unsigned char* p1 = static_cast<unsigned char*>(memchr(start, '\r', len));
-    unsigned char* p2 = static_cast<unsigned char*>(memchr(start, '\n', len));
-    unsigned char* p = (p1 && p2) ? std::min(p1, p2) : p1 ? p1 : p2;
-    if (p)
+    while ((p < end) && !((*p == '\r') || (*p == '\n')))
+    {
+        ++p;
+    }
+    if (p < end)
     {
         result = p - buffer;
         this->m->cur_offset = result + 1;
