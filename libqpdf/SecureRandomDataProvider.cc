@@ -42,7 +42,7 @@ class WindowsCryptProvider
   public:
     WindowsCryptProvider()
     {
-        if (!CryptAcquireContext(&crypt_prov,
+        if (!CryptAcquireContextA(&crypt_prov,
                                  "Container",
                                  NULL,
                                  PROV_RSA_FULL,
@@ -57,7 +57,7 @@ class WindowsCryptProvider
 #endif
             if (GetLastError() == NTE_BAD_KEYSET)
             {
-                if (! CryptAcquireContext(&crypt_prov,
+                if (! CryptAcquireContextA(&crypt_prov,
                                           "Container",
                                           NULL,
                                           PROV_RSA_FULL,

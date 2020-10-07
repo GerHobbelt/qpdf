@@ -47,6 +47,14 @@
 #ifndef SPH_TYPES_H
 #define SPH_TYPES_H
 
+#include <qpdf/qpdf-config.h>
+#ifdef HAVE_INTTYPES_H
+# include <inttypes.h>
+#endif
+#ifdef HAVE_STDINT_H
+# include <stdint.h>
+#endif
+#include <stddef.h>
 #include <limits.h>
 
 /*
@@ -821,7 +829,7 @@ static inline void sph_enc64be_aligned(void *dst, sph_u64 val);
 #undef SPH_64
 #undef SPH_64_TRUE
 
-#if defined __STDC__ && __STDC_VERSION__ >= 199901L
+#if (defined __STDC__ && __STDC_VERSION__ >= 199901L) || defined(_MSC_VER)
 
 /*
  * On C99 implementations, we can use <stdint.h> to get an exact 64-bit

@@ -80,6 +80,12 @@
 #pragma warning (disable: 4146)
 #endif
 
+// Added this check as this C file is #included in other files, where this #define i set.
+// Stand-alone compilation of this C file should deliver an empty result.
+
+#ifdef RFUN
+
+
 #undef SPH_XCAT
 #define SPH_XCAT(a, b)     SPH_XCAT_(a, b)
 #undef SPH_XCAT_
@@ -344,3 +350,6 @@ SPH_XCAT(HASH, _close)(void *cc, void *dst, unsigned rnum)
 {
 	SPH_XCAT(HASH, _addbits_and_close)(cc, 0, 0, dst, rnum);
 }
+
+
+#endif
