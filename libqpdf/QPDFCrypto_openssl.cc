@@ -4,6 +4,9 @@
 
 #include <cstring>
 #include <stdexcept>
+#include <string>
+
+#include <openssl/err.h>
 
 #include <qpdf/QIntC.hh>
 
@@ -20,8 +23,15 @@ check_openssl(int status)
 {
     if (status != 1)
     {
-        throw std::runtime_error("openssl error");
+        // OpenSSL creates a "queue" of errors; copy the first (innermost)
+        // error to the exception message.
+        char buf[256] = "";
+        ERR_error_string_n(ERR_get_error(), buf, sizeof(buf));
+        std::string what = "OpenSSL error: ";
+        what += buf;
+        throw std::runtime_error(what);
     }
+    ERR_clear_error();
 }
 
 QPDFCrypto_openssl::QPDFCrypto_openssl() :
