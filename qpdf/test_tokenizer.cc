@@ -252,14 +252,8 @@ static void process(char const* filename, bool include_ignorable,
 int main(int argc, char* argv[])
 {
     QUtil::setLineBuf(stdout);
-    if ((whoami = strrchr(argv[0], '/')) == NULL)
-    {
-	whoami = argv[0];
-    }
-    else
-    {
-	++whoami;
-    }
+    whoami = QUtil::getWhoami(argv[0]);
+
     // For libtool's sake....
     if (strncmp(whoami, "lt-", 3) == 0)
     {

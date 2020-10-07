@@ -1,6 +1,7 @@
 #include <qpdf/QPDF.hh>
 #include <qpdf/QPDFObjGen.hh>
 #include <qpdf/QPDFXRefEntry.hh>
+#include <qpdf/QUtil.hh>
 
 #include <iostream>
 #include <map>
@@ -9,9 +10,11 @@
 
 int main(int argc, char *argv[])
 {
+    const char *whoami = QUtil::getWhoami(argv[0]);
+
     if (argc != 2)
     {
-        std::cerr << "usage: test_xref INPUT.pdf" << std::endl;
+        std::cerr << "usage: " << whoami << " INPUT.pdf" << std::endl;
         std::exit(2);
     }
 

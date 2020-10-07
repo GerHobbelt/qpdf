@@ -2211,14 +2211,8 @@ void runtest(int n, char const* filename1, char const* arg2)
 int main(int argc, char* argv[])
 {
     QUtil::setLineBuf(stdout);
-    if ((whoami = strrchr(argv[0], '/')) == NULL)
-    {
-	whoami = argv[0];
-    }
-    else
-    {
-	++whoami;
-    }
+    whoami = QUtil::getWhoami(argv[0]);
+
     // For libtool's sake....
     if (strncmp(whoami, "lt-", 3) == 0)
     {
