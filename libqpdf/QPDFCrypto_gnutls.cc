@@ -1,4 +1,8 @@
 #include <qpdf/QPDFCrypto_gnutls.hh>
+
+#include <qpdf/qpdf-config.h>
+#ifdef USE_CRYPTO_GNUTLS
+
 #include <qpdf/QIntC.hh>
 #include <qpdf/QUtil.hh>
 #include <cstring>
@@ -287,3 +291,6 @@ QPDFCrypto_gnutls::badBits()
 {
     throw std::logic_error("SHA2 (gnutls) has bits != 256, 384, or 512");
 }
+
+#endif
+

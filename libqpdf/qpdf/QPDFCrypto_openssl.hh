@@ -1,6 +1,9 @@
 #ifndef QPDFCRYPTO_openssl_HH
 #define QPDFCRYPTO_openssl_HH
 
+#include <qpdf/qpdf-config.h>
+#ifdef USE_CRYPTO_OPENSSL
+
 #include <qpdf/QPDFCryptoImpl.hh>
 #include <string>
 #ifdef OPENSSL_IS_BORINGSSL
@@ -49,5 +52,7 @@ class QPDFCrypto_openssl: public QPDFCryptoImpl
     uint8_t md_out[EVP_MAX_MD_SIZE];
     size_t sha2_bits;
 };
+
+#endif
 
 #endif // QPDFCRYPTO_openssl_HH

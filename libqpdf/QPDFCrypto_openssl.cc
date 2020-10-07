@@ -1,4 +1,6 @@
 #include <qpdf/QPDFCrypto_openssl.hh>
+#include <qpdf/qpdf-config.h>
+#ifdef USE_CRYPTO_OPENSSL
 
 #include <cstring>
 #include <stdexcept>
@@ -197,3 +199,5 @@ QPDFCrypto_openssl::rijndael_finalize()
         check_openssl(EVP_CIPHER_CTX_reset(cipher_ctx));
     }
 }
+
+#endif

@@ -1,6 +1,9 @@
 #ifndef QPDFCRYPTO_GNUTLS_HH
 #define QPDFCRYPTO_GNUTLS_HH
 
+#include <qpdf/qpdf-config.h>
+#ifdef USE_CRYPTO_GNUTLS
+
 #include <qpdf/DLL.h>
 #include <qpdf/QPDFCryptoImpl.hh>
 #include <memory>
@@ -51,5 +54,7 @@ class QPDFCrypto_gnutls: public QPDFCryptoImpl
     unsigned char const* aes_key_data;
     size_t aes_key_len;
 };
+
+#endif
 
 #endif // QPDFCRYPTO_GNUTLS_HH

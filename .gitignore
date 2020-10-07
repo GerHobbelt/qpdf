@@ -26,3 +26,9 @@ manual/print.xsl
 qpdf/build/
 zlib-flate/build/
 distribution/
+/win32/.vs/
+/win32/Debug-32/
+/win32/Release-32/
+/win32/Debug-64/
+/win32/Release-64/
+/win32/*.user
