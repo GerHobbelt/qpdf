@@ -27,6 +27,9 @@
     <ProjectReference Include="..\..\..\CS\MuPDF\platform\win32\libthirdparty.vcxproj">
       <Project>{5edcf4fd-0291-4fb9-8d96-d58957ca5e3c}</Project>
     </ProjectReference>
+    <ProjectReference Include="libjpegmem.vcxproj">
+      <Project>{b00c51ec-7445-4904-9da9-b21daf541780}</Project>
+    </ProjectReference>
     <ProjectReference Include="libqpdf.vcxproj">
       <Project>{e74ffff0-fa43-4adc-b92c-6afa08e4a4aa}</Project>
     </ProjectReference>
@@ -149,7 +152,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\include;..\libqpdf;../win32/;../../../CS/mupdf/thirdparty/libjpeg/;../../../CS/mupdf/scripts/libjpeg/;../../../CS/mupdf/thirdparty/zlib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRTDBG_MAP_ALLOC;WIN32;_DEBUG;FT2_BUILD_LIBRARY;OPJ_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WINDOWS_WMAIN;WINDOWS_WMAIN;_CRTDBG_MAP_ALLOC;WIN32;_DEBUG;FT2_BUILD_LIBRARY;OPJ_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -171,7 +174,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\include;..\libqpdf;../win32/;../../../CS/mupdf/thirdparty/libjpeg/;../../../CS/mupdf/scripts/libjpeg/;../../../CS/mupdf/thirdparty/zlib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRTDBG_MAP_ALLOC;WIN64;_DEBUG;FT2_BUILD_LIBRARY;OPJ_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WINDOWS_WMAIN;WINDOWS_WMAIN;_CRTDBG_MAP_ALLOC;WIN64;_DEBUG;FT2_BUILD_LIBRARY;OPJ_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -191,7 +194,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\include;..\libqpdf;../win32/;../../../CS/mupdf/thirdparty/libjpeg/;../../../CS/mupdf/scripts/libjpeg/;../../../CS/mupdf/thirdparty/zlib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WINDOWS_WMAIN;WINDOWS_WMAIN;WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -214,7 +217,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\include;..\libqpdf;../win32/;../../../CS/mupdf/thirdparty/libjpeg/;../../../CS/mupdf/scripts/libjpeg/;../../../CS/mupdf/thirdparty/zlib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN64;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WINDOWS_WMAIN;WINDOWS_WMAIN;WIN64;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>

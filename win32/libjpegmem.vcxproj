@@ -19,22 +19,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\qpdf\build.mk" />
-    <None Include="..\qpdf\Makefile" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\..\..\CS\MuPDF\platform\win32\libthirdparty.vcxproj">
       <Project>{5edcf4fd-0291-4fb9-8d96-d58957ca5e3c}</Project>
-    </ProjectReference>
-    <ProjectReference Include="libjpegmem.vcxproj">
-      <Project>{b00c51ec-7445-4904-9da9-b21daf541780}</Project>
-    </ProjectReference>
-    <ProjectReference Include="libqpdf.vcxproj">
-      <Project>{e74ffff0-fa43-4adc-b92c-6afa08e4a4aa}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\CS\MuPDF\scripts\libjpeg\jconfig.h" />
+    <ClInclude Include="..\..\..\CS\MuPDF\source\fitz\jmemcust.h" />
     <ClInclude Include="..\..\..\CS\MuPDF\thirdparty\libjpeg\jerror.h" />
     <ClInclude Include="..\..\..\CS\MuPDF\thirdparty\libjpeg\jpegint.h" />
     <ClInclude Include="..\..\..\CS\MuPDF\thirdparty\libjpeg\jpeglib.h" />
@@ -42,84 +33,37 @@
     <ClInclude Include="..\..\..\CS\MuPDF\thirdparty\zlib\crc32.h" />
     <ClInclude Include="..\..\..\CS\MuPDF\thirdparty\zlib\zconf.h" />
     <ClInclude Include="..\..\..\CS\MuPDF\thirdparty\zlib\zlib.h" />
-    <ClInclude Include="..\include\qpdf\Buffer.hh" />
-    <ClInclude Include="..\include\qpdf\BufferInputSource.hh" />
-    <ClInclude Include="..\include\qpdf\ClosedFileInputSource.hh" />
-    <ClInclude Include="..\include\qpdf\Constants.h" />
-    <ClInclude Include="..\include\qpdf\DLL.h" />
-    <ClInclude Include="..\include\qpdf\FileInputSource.hh" />
-    <ClInclude Include="..\include\qpdf\InputSource.hh" />
-    <ClInclude Include="..\include\qpdf\JSON.hh" />
-    <ClInclude Include="..\include\qpdf\Pipeline.hh" />
-    <ClInclude Include="..\include\qpdf\Pl_Buffer.hh" />
-    <ClInclude Include="..\include\qpdf\Pl_Concatenate.hh" />
-    <ClInclude Include="..\include\qpdf\Pl_Count.hh" />
-    <ClInclude Include="..\include\qpdf\Pl_DCT.hh" />
-    <ClInclude Include="..\include\qpdf\Pl_Discard.hh" />
-    <ClInclude Include="..\include\qpdf\Pl_Flate.hh" />
-    <ClInclude Include="..\include\qpdf\Pl_QPDFTokenizer.hh" />
-    <ClInclude Include="..\include\qpdf\Pl_RunLength.hh" />
-    <ClInclude Include="..\include\qpdf\Pl_StdioFile.hh" />
-    <ClInclude Include="..\include\qpdf\PointerHolder.hh" />
-    <ClInclude Include="..\include\qpdf\QIntC.hh" />
-    <ClInclude Include="..\include\qpdf\qpdf-c.h" />
-    <ClInclude Include="..\include\qpdf\QPDF.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFAcroFormDocumentHelper.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFAnnotationObjectHelper.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFCryptoImpl.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFCryptoProvider.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFDocumentHelper.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFExc.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFFormFieldObjectHelper.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFNameTreeObjectHelper.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFNumberTreeObjectHelper.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFObject.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFObjectHandle.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFObjectHelper.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFObjGen.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFOutlineDocumentHelper.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFOutlineObjectHelper.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFPageDocumentHelper.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFPageLabelDocumentHelper.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFPageObjectHelper.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFSystemError.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFTokenizer.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFWriter.hh" />
-    <ClInclude Include="..\include\qpdf\QPDFXRefEntry.hh" />
-    <ClInclude Include="..\include\qpdf\QTC.hh" />
-    <ClInclude Include="..\include\qpdf\QUtil.hh" />
-    <ClInclude Include="..\include\qpdf\RandomDataProvider.hh" />
-    <ClInclude Include="..\include\qpdf\Types.h" />
     <ClInclude Include="qpdf\qpdf-config.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\qpdf\test_tokenizer.cc" />
+    <ClCompile Include="..\..\..\CS\MuPDF\source\fitz\jmemcust.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{9038C53E-AAA2-4525-97E0-60DD54E7B1AD}</ProjectGuid>
+    <ProjectGuid>{B00C51EC-7445-4904-9DA9-B21DAF541780}</ProjectGuid>
     <RootNamespace>qpdf</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>true</UseDebugLibraries>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -151,7 +95,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\include;..\libqpdf;../win32/;../../../CS/mupdf/thirdparty/libjpeg/;../../../CS/mupdf/scripts/libjpeg/;../../../CS/mupdf/thirdparty/zlib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WINDOWS_WMAIN;_CRTDBG_MAP_ALLOC;WIN32;_DEBUG;FT2_BUILD_LIBRARY;OPJ_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRTDBG_MAP_ALLOC;WIN32;_DEBUG;FT2_BUILD_LIBRARY;OPJ_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -173,7 +117,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\include;..\libqpdf;../win32/;../../../CS/mupdf/thirdparty/libjpeg/;../../../CS/mupdf/scripts/libjpeg/;../../../CS/mupdf/thirdparty/zlib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WINDOWS_WMAIN;_CRTDBG_MAP_ALLOC;WIN64;_DEBUG;FT2_BUILD_LIBRARY;OPJ_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRTDBG_MAP_ALLOC;WIN64;_DEBUG;FT2_BUILD_LIBRARY;OPJ_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -193,7 +137,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\include;..\libqpdf;../win32/;../../../CS/mupdf/thirdparty/libjpeg/;../../../CS/mupdf/scripts/libjpeg/;../../../CS/mupdf/thirdparty/zlib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WINDOWS_WMAIN;WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -216,7 +160,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\include;..\libqpdf;../win32/;../../../CS/mupdf/thirdparty/libjpeg/;../../../CS/mupdf/scripts/libjpeg/;../../../CS/mupdf/thirdparty/zlib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WINDOWS_WMAIN;WIN64;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN64;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>

@@ -35,6 +35,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib_flate", "zlib_flate.vc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "qpdf-ctest", "qpdf-ctest.vcxproj", "{94899F47-9BE3-4EC1-9FDA-B6871B3A1156}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libjpegmem", "libjpegmem.vcxproj", "{B00C51EC-7445-4904-9DA9-B21DAF541780}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -369,6 +371,26 @@ Global
 		{94899F47-9BE3-4EC1-9FDA-B6871B3A1156}.ReleaseJava|x64.Build.0 = Release|x64
 		{94899F47-9BE3-4EC1-9FDA-B6871B3A1156}.ReleaseJava|x86.ActiveCfg = Release|Win32
 		{94899F47-9BE3-4EC1-9FDA-B6871B3A1156}.ReleaseJava|x86.Build.0 = Release|Win32
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.Debug|x64.ActiveCfg = Debug|x64
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.Debug|x64.Build.0 = Debug|x64
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.Debug|x86.ActiveCfg = Debug|Win32
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.Debug|x86.Build.0 = Debug|Win32
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.DebugJava|x64.ActiveCfg = Debug|x64
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.DebugJava|x64.Build.0 = Debug|x64
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.DebugJava|x86.ActiveCfg = Debug|Win32
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.DebugJava|x86.Build.0 = Debug|Win32
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.Memento|x64.ActiveCfg = Debug|x64
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.Memento|x64.Build.0 = Debug|x64
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.Memento|x86.ActiveCfg = Debug|Win32
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.Memento|x86.Build.0 = Debug|Win32
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.Release|x64.ActiveCfg = Release|x64
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.Release|x64.Build.0 = Release|x64
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.Release|x86.ActiveCfg = Release|Win32
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.Release|x86.Build.0 = Release|Win32
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.ReleaseJava|x64.ActiveCfg = Release|x64
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.ReleaseJava|x64.Build.0 = Release|x64
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.ReleaseJava|x86.ActiveCfg = Release|Win32
+		{B00C51EC-7445-4904-9DA9-B21DAF541780}.ReleaseJava|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

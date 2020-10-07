@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="win32">
+      <UniqueIdentifier>{19134505-0bba-4d9a-8c74-ec516ebc9f94}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="win32\qpdf">
+      <UniqueIdentifier>{49f49949-77d7-4ba9-9f0c-534a512092d6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="thirdparty">
+      <UniqueIdentifier>{38919d4a-33f7-46e4-8a5d-a9dd74be6c58}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libjpeg-heapmem">
+      <UniqueIdentifier>{a500bfbd-aa82-44dd-b3f7-542012b8b4cc}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="qpdf\qpdf-config.h">
+      <Filter>win32\qpdf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\CS\MuPDF\thirdparty\libjpeg\jerror.h">
+      <Filter>thirdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\CS\MuPDF\thirdparty\libjpeg\jpegint.h">
+      <Filter>thirdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\CS\MuPDF\thirdparty\libjpeg\jpeglib.h">
+      <Filter>thirdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\CS\MuPDF\thirdparty\libjpeg\jversion.h">
+      <Filter>thirdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\CS\MuPDF\thirdparty\zlib\crc32.h">
+      <Filter>thirdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\CS\MuPDF\thirdparty\zlib\zconf.h">
+      <Filter>thirdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\CS\MuPDF\thirdparty\zlib\zlib.h">
+      <Filter>thirdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\CS\MuPDF\scripts\libjpeg\jconfig.h">
+      <Filter>thirdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\CS\MuPDF\source\fitz\jmemcust.h">
+      <Filter>libjpeg-heapmem</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\CS\MuPDF\source\fitz\jmemcust.c">
+      <Filter>libjpeg-heapmem</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
