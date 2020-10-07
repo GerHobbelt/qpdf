@@ -1,18 +1,18 @@
-#ifndef QPDFCRYPTO_openssl_HH
-#define QPDFCRYPTO_openssl_HH
+#ifndef QPDFCRYPTO_OPENSSL_HH
+#define QPDFCRYPTO_OPENSSL_HH
 
 #include <qpdf/qpdf-config.h>
 #ifdef USE_CRYPTO_OPENSSL
 
 #include <qpdf/QPDFCryptoImpl.hh>
 #include <string>
+#include <openssl/rand.h>
 #ifdef OPENSSL_IS_BORINGSSL
 #include <openssl/cipher.h>
 #include <openssl/digest.h>
 #else
 #include <openssl/evp.h>
 #endif
-#include <openssl/rand.h>
 
 class QPDFCrypto_openssl: public QPDFCryptoImpl
 {
@@ -55,4 +55,4 @@ class QPDFCrypto_openssl: public QPDFCryptoImpl
 
 #endif
 
-#endif // QPDFCRYPTO_openssl_HH
+#endif // QPDFCRYPTO_OPENSSL_HH
