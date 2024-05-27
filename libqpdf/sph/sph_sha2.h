@@ -1,3 +1,4 @@
+/* clang-format off */
 /* $Id: sph_sha2.h 216 2010-06-08 09:46:57Z tp $ */
 /**
  * SHA-224, SHA-256, SHA-384 and SHA-512 interface.
@@ -69,12 +70,12 @@ extern "C" {
  */
 typedef struct {
 #ifndef DOXYGEN_IGNORE
-	unsigned char buf[64];    /* first field, for alignment */
-	sph_u32 val[8];
+        unsigned char buf[64];    /* first field, for alignment */
+        sph_u32 val[8];
 #if SPH_64
-	sph_u64 count;
+        sph_u64 count;
 #else
-	sph_u32 count_high, count_low;
+        sph_u32 count_high, count_low;
 #endif
 #endif
 } sph_sha224_context;
@@ -233,9 +234,9 @@ void sph_sha256_comp(const sph_u32 msg[16], sph_u32 val[8]);
  */
 typedef struct {
 #ifndef DOXYGEN_IGNORE
-	unsigned char buf[128];    /* first field, for alignment */
-	sph_u64 val[8];
-	sph_u64 count;
+        unsigned char buf[128];    /* first field, for alignment */
+        sph_u64 val[8];
+        sph_u64 count;
 #endif
 } sph_sha384_context;
 

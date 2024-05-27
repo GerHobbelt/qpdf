@@ -3,6 +3,8 @@
 // Edits will be automatically overwritten if the build is
 // run in maintainer mode.
 //
+// clang-format off
+//
 void setupInputFile();
 void setupPassword();
 void setupEmpty();
@@ -27,6 +29,8 @@ void endAddAttachmentArray();
 void beginAddAttachment(JSON);
 void endAddAttachment();
 void setupAddAttachmentFile();
+void beginRemoveAttachmentArray(JSON);
+void endRemoveAttachmentArray();
 void beginCopyAttachmentsFromArray(JSON);
 void endCopyAttachmentsFromArray();
 void beginCopyAttachmentsFrom(JSON);
@@ -39,11 +43,17 @@ void beginPages(JSON);
 void endPages();
 void setupPagesFile();
 void setupPagesPassword();
-void setupPagesRange();
+void beginSetPageLabelsArray(JSON);
+void endSetPageLabelsArray();
+void setupSetPageLabels();
+void beginOverlayArray(JSON);
+void endOverlayArray();
 void beginOverlay(JSON);
 void endOverlay();
 void setupOverlayFile();
 void setupOverlayPassword();
+void beginUnderlayArray(JSON);
+void endUnderlayArray();
 void beginUnderlay(JSON);
 void endUnderlay();
 void setupUnderlayFile();

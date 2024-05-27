@@ -10,7 +10,7 @@ Using QPDF from C++
 
 The source tree for the qpdf package has an
 :file:`examples` directory that contains a few
-example programs. The :file:`qpdf/qpdf.cc` source
+example programs. The :file:`libqpdf/QPDFJob.cc` source
 file also serves as a useful example since it exercises almost all of
 the qpdf library's public interface. The best source of documentation on
 the library itself is reading comments in
@@ -23,10 +23,20 @@ All header files are installed in the
 you use ``#include <qpdf/QPDF.hh>`` rather than adding
 :file:`include/qpdf` to your include path.
 
-When linking against the qpdf static library, you may also need to
-specify ``-lz -ljpeg`` on your link command. If your system understands
-how to read libtool :file:`.la` files, this may not
-be necessary.
+qpdf installs a ``pkg-config`` configuration with package name
+``libqpdf`` and a ``cmake`` configuration with package name ``qpdf``.
+The ``libqpdf`` target is exported in the ``qpdf::`` namespace. The
+following is an example of a :file:`CMakeLists.txt` file for a
+single-file executable that links with qpdf:
+
+.. code-block:: cmake
+
+   cmake_minimum_required(VERSION 3.16)
+   project(some-application LANGUAGES CXX)
+   find_package(qpdf)
+   add_executable(some-application some-application.cc)
+   target_link_libraries(some-application qpdf::libqpdf)
+
 
 The qpdf library is safe to use in a multithreaded program, but no
 individual ``QPDF`` object instance (including ``QPDF``,
@@ -61,11 +71,23 @@ Python
    rich standard library and available modules.
 
 Other Languages
-   Starting with version 8.3.0, the :command:`qpdf`
-   command-line tool can produce a JSON representation of the PDF file's
-   non-content data. This can facilitate interacting programmatically
-   with PDF files through qpdf's command line interface. For more
-   information, please see :ref:`json`.
+   Starting with version 11.0.0, the :command:`qpdf`
+   command-line tool can produce an unambiguous JSON representation of
+   a PDF file and can also create or update PDF files using this JSON
+   representation. qpdf versions from 8.3.0 through 10.6.3 had a more
+   limited JSON output format. The qpdf JSON format makes it possible
+   to inspect and modify the structure of a PDF file down to the
+   object level from the command-line or from any language that can
+   handle JSON data. Please see :ref:`json` for details.
+
+Wrappers
+   The `qpdf Wiki <https://github.com/qpdf/qpdf/wiki>`__ contains a
+   list of `Wrappers around qpdf
+   <https://github.com/qpdf/qpdf/wiki/qpdf-Wrappers>`__. These may
+   have varying degrees of functionality or completeness. If you know
+   of (or have written) a wrapper that you'd like include, open an
+   issue at https://github.com/qpdf/qpdf/issues/new and ask for it to
+   be added to the list.
 
 .. _unicode-files:
 
@@ -86,6 +108,6 @@ converted to ``wchar_t*``, and Unicode-aware Windows APIs are used. As
 such, qpdf will generally operate properly on files with non-ASCII
 characters in their names as long as the filenames are UTF-8 encoded for
 passing into the qpdf library API, but there are still some rough edges,
-such as the encoding of the filenames in error messages our CLI output
+such as the encoding of the filenames in error messages or CLI output
 messages. Patches or bug reports are welcome for any continuing issues
 with Unicode file names in Windows.

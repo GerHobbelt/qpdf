@@ -14,7 +14,10 @@ executable is available from inside the C++ library using the
 
   - Use from the C++ API with ``QPDFJob::initializeFromArgv``
 
-  - Use from the C API with ``qpdfjob_run_from_argv`` from :file:`qpdfjob-c.h`
+  - Use from the C API with ``qpdfjob_run_from_argv`` from
+    :file:`qpdfjob-c.h`. If you are calling from a Windows-style main
+    and have an argv array of ``wchar_t``, you can use
+    ``qpdfjob_run_from_wide_argv``.
 
 - The job JSON file format
 
@@ -24,10 +27,14 @@ executable is available from inside the C++ library using the
 
   - Use from the C API with ``qpdfjob_run_from_json`` from :file:`qpdfjob-c.h`
 
+  - Note: this is unrelated to :qpdf:ref:`--json` but can be combined
+    with it. For more information on qpdf JSON (vs. QPDFJob JSON), see
+    :ref:`json`.
+
 - The ``QPDFJob`` C++ API
 
 If you can understand how to use the :command:`qpdf` CLI, you can
-understand the ``QPDFJob`` class and the json file. qpdf guarantees
+understand the ``QPDFJob`` class and the JSON file. qpdf guarantees
 that all of the above methods are in sync. Here's how it works:
 
 .. list-table:: QPDFJob Interfaces
@@ -55,8 +62,8 @@ keys are command-line flags converted to camelCase. Positional
 arguments have some corresponding key, which you can find by running
 ``qpdf`` with the :qpdf:ref:`--job-json-help` flag. For example, input
 and output files are named by positional arguments on the CLI. In the
-JSON, they are ``"inputFile"`` and ``"outputFile"``. The following are
-equivalent:
+JSON, they appear in the ``"inputFile"`` and ``"outputFile"`` keys.
+The following are equivalent:
 
 .. It would be nice to have an automated test that these are all the
    same, but we have so few live examples that it's not worth it for
@@ -135,7 +142,14 @@ C++ code:
           return 0;
       }
 
-It is also possible to mix and match command-line options and json
+Note the ``QPDFUsage`` exception above. This is thrown whenever a
+configuration error occurs. These exactly correspond to usage messages
+issued by the :command:`qpdf` CLI for things like omitting an output
+file, specifying `--pages` multiple times, or other invalid
+combinations of options. ``QPDFUsage`` is thrown by the argv and JSON
+interfaces as well as the native ``QPDFJob`` interface.
+
+It is also possible to mix and match command-line options and JSON
 from the CLI. For example, you could create a file called
 :file:`my-options.json` containing the following:
 
@@ -174,19 +188,19 @@ This section describes some of the design rationale and history behind
 Documentation of ``QPDFJob`` is divided among three places:
 
 - "HOW TO ADD A COMMAND-LINE ARGUMENT" in :file:`README-maintainer`
-  provides a quick reminder for how to add a command-line argument
+  provides a quick reminder of how to add a command-line argument.
 
 - The source file :file:`generate_auto_job` has a detailed explanation
-  about how ``QPDFJob`` and ``generate_auto_job`` work together
+  about how ``QPDFJob`` and ``generate_auto_job`` work together.
 
 - This chapter of the manual has other details.
 
 Prior to qpdf version 10.6.0, the qpdf CLI executable had a lot of
-functionality built into the executable that was not callable from the
-library as such. This created a number of problems:
+functionality built into it that was not callable from the library as
+such. This created a number of problems:
 
 - Some of the logic in :file:`qpdf.cc` was pretty complex, such as
-  image optimization, generating json output, and many of the page
+  image optimization, generating JSON output, and many of the page
   manipulations. While those things could all be coded using the C++
   API, there would be a lot of duplicated code.
 
@@ -197,7 +211,7 @@ library as such. This created a number of problems:
 
 - Users of other languages who just wanted an interface to do things
   that the CLI could do didn't have a good way to do it, such as just
-  handling a library call a set of command-line options or an
+  handing a library call a set of command-line options or an
   equivalent JSON object that could be passed in as a string.
 
 - The qpdf CLI itself was almost 8,000 lines of code. It needed to be
@@ -212,7 +226,7 @@ Here are a few notes on some design decisions about QPDFJob and its
 various interfaces.
 
 - Bare command-line options (flags with no parameter) map to config
-  functions that take no options and to json keys whose values are
+  functions that take no options and to JSON keys whose values are
   required to be the empty string. The rationale is that we can later
   change these bare options to options that take an optional parameter
   without breaking backward compatibility in the CLI or the JSON.
@@ -244,5 +258,5 @@ various interfaces.
   Config class, adding a config member variable to ``ArgParser`` in
   :file:`QPDFJob_argv.cc` and ``Handlers`` in :file:`QPDFJob_json.cc`,
   and make sure that manually implemented handlers are consistent with
-  each other. It is best under the cases to explicit test cases for
-  all the various ways to get to the option.
+  each other. It is best to add explicit test cases for all the
+  various ways to get to the option.

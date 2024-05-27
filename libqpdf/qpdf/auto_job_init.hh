@@ -3,6 +3,8 @@
 // Edits will be automatically overwritten if the build is
 // run in maintainer mode.
 //
+// clang-format off
+//
 auto b = [this](void (ArgParser::*f)()) {
     return QPDFArgParser::bindBare(f, this);
 };
@@ -17,17 +19,20 @@ static char const* decode_level_choices[] = {"none", "generalized", "specialized
 static char const* object_streams_choices[] = {"disable", "preserve", "generate", 0};
 static char const* remove_unref_choices[] = {"auto", "yes", "no", 0};
 static char const* flatten_choices[] = {"all", "print", "screen", 0};
-static char const* json_version_choices[] = {"1", "latest", 0};
-static char const* json_key_choices[] = {"acroform", "attachments", "encrypt", "objectinfo", "objects", "outlines", "pagelabels", "pages", 0};
+static char const* json_key_choices[] = {"acroform", "attachments", "encrypt", "objectinfo", "objects", "outlines", "pagelabels", "pages", "qpdf", 0};
+static char const* json_output_choices[] = {"2", "latest", 0};
+static char const* json_stream_data_choices[] = {"none", "inline", "file", 0};
+static char const* json_version_choices[] = {"1", "2", "latest", 0};
+static char const* enc_bits_choices[] = {"40", "128", "256", 0};
 static char const* print128_choices[] = {"full", "low", "none", 0};
 static char const* modify128_choices[] = {"all", "annotate", "form", "assembly", "none", 0};
 
 this->ap.selectHelpOptionTable();
 this->ap.addBare("version", b(&ArgParser::argVersion));
 this->ap.addBare("copyright", b(&ArgParser::argCopyright));
-this->ap.addBare("json-help", b(&ArgParser::argJsonHelp));
 this->ap.addBare("show-crypto", b(&ArgParser::argShowCrypto));
 this->ap.addBare("job-json-help", b(&ArgParser::argJobJsonHelp));
+this->ap.addChoices("json-help", p(&ArgParser::argJsonHelp), false, json_version_choices);
 this->ap.selectMainOptionTable();
 this->ap.addPositional(p(&ArgParser::argPositional));
 this->ap.addBare("add-attachment", b(&ArgParser::argAddAttachment));
@@ -46,6 +51,7 @@ this->ap.addBare("flatten-rotation", [this](){c_main->flattenRotation();});
 this->ap.addBare("generate-appearances", [this](){c_main->generateAppearances();});
 this->ap.addBare("ignore-xref-streams", [this](){c_main->ignoreXrefStreams();});
 this->ap.addBare("is-encrypted", [this](){c_main->isEncrypted();});
+this->ap.addBare("json-input", [this](){c_main->jsonInput();});
 this->ap.addBare("keep-inline-images", [this](){c_main->keepInlineImages();});
 this->ap.addBare("linearize", [this](){c_main->linearize();});
 this->ap.addBare("list-attachments", [this](){c_main->listAttachments();});
@@ -64,7 +70,10 @@ this->ap.addBare("raw-stream-data", [this](){c_main->rawStreamData();});
 this->ap.addBare("recompress-flate", [this](){c_main->recompressFlate();});
 this->ap.addBare("remove-page-labels", [this](){c_main->removePageLabels();});
 this->ap.addBare("replace-input", b(&ArgParser::argReplaceInput));
+this->ap.addBare("report-memory-usage", [this](){c_main->reportMemoryUsage();});
 this->ap.addBare("requires-password", [this](){c_main->requiresPassword();});
+this->ap.addBare("remove-restrictions", [this](){c_main->removeRestrictions();});
+this->ap.addBare("set-page-labels", b(&ArgParser::argSetPageLabels));
 this->ap.addBare("show-encryption", [this](){c_main->showEncryption();});
 this->ap.addBare("show-encryption-key", [this](){c_main->showEncryptionKey();});
 this->ap.addBare("show-linearization", [this](){c_main->showLinearization();});
@@ -75,6 +84,7 @@ this->ap.addBare("static-aes-iv", [this](){c_main->staticAesIv();});
 this->ap.addBare("static-id", [this](){c_main->staticId();});
 this->ap.addBare("suppress-password-recovery", [this](){c_main->suppressPasswordRecovery();});
 this->ap.addBare("suppress-recovery", [this](){c_main->suppressRecovery();});
+this->ap.addBare("test-json-schema", [this](){c_main->testJsonSchema();});
 this->ap.addBare("underlay", b(&ArgParser::argUnderlay));
 this->ap.addBare("verbose", [this](){c_main->verbose();});
 this->ap.addBare("warning-exit-0", [this](){c_main->warningExit0();});
@@ -98,12 +108,15 @@ this->ap.addRequiredParameter("remove-attachment", [this](std::string const& x){
 this->ap.addRequiredParameter("rotate", [this](std::string const& x){c_main->rotate(x);}, "[+|-]angle");
 this->ap.addRequiredParameter("show-attachment", [this](std::string const& x){c_main->showAttachment(x);}, "attachment");
 this->ap.addRequiredParameter("show-object", [this](std::string const& x){c_main->showObject(x);}, "trailer");
+this->ap.addRequiredParameter("json-stream-prefix", [this](std::string const& x){c_main->jsonStreamPrefix(x);}, "stream-file-prefix");
+this->ap.addRequiredParameter("update-from-json", [this](std::string const& x){c_main->updateFromJson(x);}, "qpdf-json file");
 this->ap.addOptionalParameter("collate", [this](std::string const& x){c_main->collate(x);});
 this->ap.addOptionalParameter("split-pages", [this](std::string const& x){c_main->splitPages(x);});
 this->ap.addChoices("compress-streams", [this](std::string const& x){c_main->compressStreams(x);}, true, yn_choices);
 this->ap.addChoices("decode-level", [this](std::string const& x){c_main->decodeLevel(x);}, true, decode_level_choices);
 this->ap.addChoices("flatten-annotations", [this](std::string const& x){c_main->flattenAnnotations(x);}, true, flatten_choices);
 this->ap.addChoices("json-key", [this](std::string const& x){c_main->jsonKey(x);}, true, json_key_choices);
+this->ap.addChoices("json-stream-data", [this](std::string const& x){c_main->jsonStreamData(x);}, true, json_stream_data_choices);
 this->ap.addChoices("keep-files-open", [this](std::string const& x){c_main->keepFilesOpen(x);}, true, yn_choices);
 this->ap.addChoices("normalize-content", [this](std::string const& x){c_main->normalizeContent(x);}, true, yn_choices);
 this->ap.addChoices("object-streams", [this](std::string const& x){c_main->objectStreams(x);}, true, object_streams_choices);
@@ -111,11 +124,17 @@ this->ap.addChoices("password-mode", [this](std::string const& x){c_main->passwo
 this->ap.addChoices("remove-unreferenced-resources", [this](std::string const& x){c_main->removeUnreferencedResources(x);}, true, remove_unref_choices);
 this->ap.addChoices("stream-data", [this](std::string const& x){c_main->streamData(x);}, true, stream_data_choices);
 this->ap.addChoices("json", [this](std::string const& x){c_main->json(x);}, false, json_version_choices);
+this->ap.addChoices("json-output", [this](std::string const& x){c_main->jsonOutput(x);}, false, json_output_choices);
 this->ap.registerOptionTable("pages", b(&ArgParser::argEndPages));
 this->ap.addPositional(p(&ArgParser::argPagesPositional));
-this->ap.addRequiredParameter("password", p(&ArgParser::argPagesPassword), "password");
+this->ap.addRequiredParameter("file", [this](std::string const& x){c_pages->file(x);}, "file");
+this->ap.addRequiredParameter("range", [this](std::string const& x){c_pages->range(x);}, "page-range");
+this->ap.addRequiredParameter("password", [this](std::string const& x){c_pages->password(x);}, "password");
 this->ap.registerOptionTable("encryption", b(&ArgParser::argEndEncryption));
 this->ap.addPositional(p(&ArgParser::argEncPositional));
+this->ap.addRequiredParameter("user-password", p(&ArgParser::argEncUserPassword), "user_password");
+this->ap.addRequiredParameter("owner-password", p(&ArgParser::argEncOwnerPassword), "owner_password");
+this->ap.addChoices("bits", p(&ArgParser::argEncBits), true, enc_bits_choices);
 this->ap.registerOptionTable("40-bit encryption", b(&ArgParser::argEnd40BitEncryption));
 this->ap.addChoices("extract", [this](std::string const& x){c_enc->extract(x);}, true, yn_choices);
 this->ap.addChoices("annotate", [this](std::string const& x){c_enc->annotate(x);}, true, yn_choices);
@@ -147,6 +166,7 @@ this->ap.addChoices("modify-other", [this](std::string const& x){c_enc->modifyOt
 this->ap.addChoices("modify", [this](std::string const& x){c_enc->modify(x);}, true, modify128_choices);
 this->ap.registerOptionTable("underlay/overlay", b(&ArgParser::argEndUnderlayOverlay));
 this->ap.addPositional(p(&ArgParser::argUOPositional));
+this->ap.addRequiredParameter("file", [this](std::string const& x){c_uo->file(x);}, "file");
 this->ap.addRequiredParameter("to", [this](std::string const& x){c_uo->to(x);}, "page-range");
 this->ap.addRequiredParameter("from", [this](std::string const& x){c_uo->from(x);}, "page-range");
 this->ap.addRequiredParameter("repeat", [this](std::string const& x){c_uo->repeat(x);}, "page-range");
@@ -164,3 +184,5 @@ this->ap.registerOptionTable("copy attachment", b(&ArgParser::argEndCopyAttachme
 this->ap.addPositional(p(&ArgParser::argCopyAttPositional));
 this->ap.addRequiredParameter("prefix", [this](std::string const& x){c_copy_att->prefix(x);}, "prefix");
 this->ap.addRequiredParameter("password", [this](std::string const& x){c_copy_att->password(x);}, "password");
+this->ap.registerOptionTable("set page labels", b(&ArgParser::argEndSetPageLabels));
+this->ap.addPositional(p(&ArgParser::argPageLabelsPositional));

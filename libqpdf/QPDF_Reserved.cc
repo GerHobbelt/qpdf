@@ -1,32 +1,33 @@
 #include <qpdf/QPDF_Reserved.hh>
+
 #include <stdexcept>
 
-QPDF_Reserved::~QPDF_Reserved()
+QPDF_Reserved::QPDF_Reserved() :
+    QPDFValue(::ot_reserved, "reserved")
 {
+}
+
+std::shared_ptr<QPDFObject>
+QPDF_Reserved::create()
+{
+    return do_create(new QPDF_Reserved());
+}
+
+std::shared_ptr<QPDFObject>
+QPDF_Reserved::copy(bool shallow)
+{
+    return create();
 }
 
 std::string
 QPDF_Reserved::unparse()
 {
-    throw std::logic_error("attempt to unparse QPDF_Reserved");
+    throw std::logic_error("QPDFObjectHandle: attempting to unparse a reserved object");
     return "";
 }
 
-JSON
-QPDF_Reserved::getJSON()
+void
+QPDF_Reserved::writeJSON(int json_version, JSON::Writer& p)
 {
-    throw std::logic_error("attempt to generate JSON from QPDF_Reserved");
-    return JSON::makeNull();
-}
-
-QPDFObject::object_type_e
-QPDF_Reserved::getTypeCode() const
-{
-    return QPDFObject::ot_reserved;
-}
-
-char const*
-QPDF_Reserved::getTypeName() const
-{
-    return "reserved";
+    throw std::logic_error("QPDFObjectHandle: attempting to get JSON from a reserved object");
 }

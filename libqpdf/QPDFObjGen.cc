@@ -1,52 +1,68 @@
 #include <qpdf/QPDFObjGen.hh>
-#include <qpdf/QUtil.hh>
 
-QPDFObjGen::QPDFObjGen() :
-    obj(0),
-    gen(0)
-{
-}
+#include <qpdf/QPDFObjectHandle.hh>
+#include <qpdf/QPDFObjectHelper.hh>
+#include <qpdf/QPDFObject_private.hh>
 
-QPDFObjGen::QPDFObjGen(int o, int g) :
-    obj(o),
-    gen(g)
-{
-}
+#include <stdexcept>
 
-bool
-QPDFObjGen::operator<(QPDFObjGen const& rhs) const
-{
-    return ((this->obj < rhs.obj) ||
-	    ((this->obj == rhs.obj) && (this->gen < rhs.gen)));
-}
-
-bool
-QPDFObjGen::operator==(QPDFObjGen const& rhs) const
-{
-    return ((this->obj == rhs.obj) && (this->gen == rhs.gen));
-}
-
-int
-QPDFObjGen::getObj() const
-{
-    return this->obj;
-}
-
-int
-QPDFObjGen::getGen() const
-{
-    return this->gen;
-}
-
-std::ostream& operator<<(std::ostream& os, const QPDFObjGen& og)
+// ABI: inline and pass og by value
+std::ostream&
+operator<<(std::ostream& os, const QPDFObjGen& og)
 {
     os << og.obj << "," << og.gen;
     return os;
 }
 
+// ABI: inline
 std::string
-QPDFObjGen::unparse() const
+QPDFObjGen::unparse(char separator) const
 {
-    return QUtil::int_to_string(this->obj) + "," +
-        QUtil::int_to_string(this->gen);
+    return std::to_string(obj) + separator + std::to_string(gen);
+}
+
+bool
+QPDFObjGen::set::add(QPDFObjectHandle const& oh)
+{
+    if (auto* ptr = oh.getObjectPtr()) {
+        return add(ptr->getObjGen());
+    } else {
+        throw std::logic_error(
+            "attempt to retrieve QPDFObjGen from uninitialized QPDFObjectHandle");
+        return false;
+    }
+}
+
+bool
+QPDFObjGen::set::add(QPDFObjectHelper const& helper)
+{
+    if (auto* ptr = helper.getObjectHandle().getObjectPtr()) {
+        return add(ptr->getObjGen());
+    } else {
+        throw std::logic_error(
+            "attempt to retrieve QPDFObjGen from uninitialized QPDFObjectHandle");
+        return false;
+    }
+}
+
+void
+QPDFObjGen::set::erase(QPDFObjectHandle const& oh)
+{
+    if (auto* ptr = oh.getObjectPtr()) {
+        erase(ptr->getObjGen());
+    } else {
+        throw std::logic_error(
+            "attempt to retrieve QPDFObjGen from uninitialized QPDFObjectHandle");
+    }
+}
+
+void
+QPDFObjGen::set::erase(QPDFObjectHelper const& helper)
+{
+    if (auto* ptr = helper.getObjectHandle().getObjectPtr()) {
+        erase(ptr->getObjGen());
+    } else {
+        throw std::logic_error(
+            "attempt to retrieve QPDFObjGen from uninitialized QPDFObjectHandle");
+    }
 }

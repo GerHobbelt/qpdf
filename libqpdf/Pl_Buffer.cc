@@ -1,19 +1,9 @@
 #include <qpdf/Pl_Buffer.hh>
-#include <stdexcept>
+
 #include <algorithm>
-#include <assert.h>
-#include <string.h>
-#include <stdlib.h>
-
-Pl_Buffer::Members::Members() :
-    ready(true),
-    total_size(0)
-{
-}
-
-Pl_Buffer::Members::~Members()
-{
-}
+#include <cstdlib>
+#include <cstring>
+#include <stdexcept>
 
 Pl_Buffer::Pl_Buffer(char const* identifier, Pipeline* next) :
     Pipeline(identifier, next),
@@ -21,85 +11,72 @@ Pl_Buffer::Pl_Buffer(char const* identifier, Pipeline* next) :
 {
 }
 
-Pl_Buffer::~Pl_Buffer()
+Pl_Buffer::~Pl_Buffer() // NOLINT (modernize-use-equals-default)
 {
+    // Must be explicit and not inline -- see QPDF_DLL_CLASS in README-maintainer
 }
 
 void
-Pl_Buffer::write(unsigned char* buf, size_t len)
+Pl_Buffer::write(unsigned char const* buf, size_t len)
 {
-    if (this->m->data.getPointer() == 0)
-    {
-        this->m->data = new Buffer(len);
-    }
-    size_t cur_size = this->m->data->getSize();
-    size_t left = cur_size - this->m->total_size;
-    if (left < len)
-    {
-        size_t new_size = std::max(this->m->total_size + len, 2 * cur_size);
-        PointerHolder<Buffer> b = new Buffer(new_size);
-        memcpy(b->getBuffer(), this->m->data->getBuffer(), this->m->total_size);
-        this->m->data = b;
-    }
-    if (len)
-    {
-        memcpy(this->m->data->getBuffer() + this->m->total_size, buf, len);
-        this->m->total_size += len;
-    }
-    this->m->ready = false;
+    m->data.append(reinterpret_cast<char const*>(buf), len);
+    m->ready = false;
 
-    if (getNext(true))
-    {
-	getNext()->write(buf, len);
+    if (getNext(true)) {
+        getNext()->write(buf, len);
     }
 }
 
 void
 Pl_Buffer::finish()
 {
-    this->m->ready = true;
-    if (getNext(true))
-    {
-	getNext()->finish();
+    m->ready = true;
+    if (getNext(true)) {
+        getNext()->finish();
     }
 }
 
 Buffer*
 Pl_Buffer::getBuffer()
 {
-    if (! this->m->ready)
-    {
-	throw std::logic_error("Pl_Buffer::getBuffer() called when not ready");
+    if (!m->ready) {
+        throw std::logic_error("Pl_Buffer::getBuffer() called when not ready");
     }
-
-    Buffer* b = new Buffer(this->m->total_size);
-    if (this->m->total_size > 0)
-    {
-        unsigned char* p = b->getBuffer();
-        memcpy(p, this->m->data->getBuffer(), this->m->total_size);
-    }
-    this->m = new Members();
+    auto* b = new Buffer(std::move(m->data));
+    m->data.clear();
     return b;
 }
 
-void
-Pl_Buffer::getMallocBuffer(unsigned char **buf, size_t* len)
+std::string
+Pl_Buffer::getString()
 {
-    if (! this->m->ready)
-    {
-	throw std::logic_error(
-            "Pl_Buffer::getMallocBuffer() called when not ready");
+    if (!m->ready) {
+        throw std::logic_error("Pl_Buffer::getString() called when not ready");
     }
+    auto s = std::move(m->data);
+    m->data.clear();
+    return s;
+}
 
-    *len = this->m->total_size;
-    if (this->m->total_size > 0)
-    {
-        *buf = reinterpret_cast<unsigned char*>(malloc(this->m->total_size));
-        memcpy(*buf, this->m->data->getBuffer(), this->m->total_size);
+std::shared_ptr<Buffer>
+Pl_Buffer::getBufferSharedPointer()
+{
+    return std::shared_ptr<Buffer>(getBuffer());
+}
+
+void
+Pl_Buffer::getMallocBuffer(unsigned char** buf, size_t* len)
+{
+    if (!m->ready) {
+        throw std::logic_error("Pl_Buffer::getMallocBuffer() called when not ready");
     }
-    else
-    {
+    auto size = m->data.size();
+    *len = size;
+    if (size > 0) {
+        *buf = reinterpret_cast<unsigned char*>(malloc(size));
+        memcpy(*buf, m->data.data(), size);
+    } else {
         *buf = nullptr;
     }
-    this->m = new Members();
+    m->data.clear();
 }

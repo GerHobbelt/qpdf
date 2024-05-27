@@ -3,6 +3,8 @@
 // Edits will be automatically overwritten if the build is
 // run in maintainer mode.
 //
+// clang-format off
+//
 static void add_help_1(QPDFArgParser& ap)
 {
 ap.addHelpTopic("usage", "basic invocation", R"(Read a PDF file, apply transformations or modifications, and write
@@ -35,10 +37,10 @@ description of the JSON input file format.
 )");
 ap.addHelpTopic("exit-status", "meanings of qpdf's exit codes", R"(Meaning of exit codes:
 
-0: no errors or warnings
-1: not used by qpdf but may be used by the shell if unable to invoke qpdf
-2: errors detected
-3: warnings detected, unless --warning-exit-0 is given
+- 0: no errors or warnings
+- 1: not used by qpdf but may be used by the shell if unable to invoke qpdf
+- 2: errors detected
+- 3: warnings detected, unless --warning-exit-0 is given
 )");
 ap.addOptionHelp("--warning-exit-0", "exit-status", "exit 0 even with warnings", R"(Use exit status 0 instead of 3 when warnings are present. When
 combined with --no-warn, warnings are completely ignored.
@@ -68,6 +70,9 @@ ap.addOptionHelp("--copyright", "help", "show copyright information", R"(Display
 ap.addOptionHelp("--show-crypto", "help", "show available crypto providers", R"(Show a list of available crypto providers, one per line. The
 default provider is shown first.
 )");
+ap.addOptionHelp("--job-json-help", "help", "show format of job JSON", R"(Describe the format of the QPDFJob JSON input used by
+--job-json-file.
+)");
 ap.addHelpTopic("general", "general options", R"(General options control qpdf's behavior in ways that are not
 directly related to the operation it is performing.
 )");
@@ -85,11 +90,11 @@ ap.addOptionHelp("--verbose", "general", "print additional information", R"(Outp
 doing, including information about files created and operations
 performed.
 )");
-ap.addOptionHelp("--progress", "general", "show progress when writing", R"(Indicate progress when writing files.
-)");
 }
 static void add_help_2(QPDFArgParser& ap)
 {
+ap.addOptionHelp("--progress", "general", "show progress when writing", R"(Indicate progress when writing files.
+)");
 ap.addOptionHelp("--no-warn", "general", "suppress printing of warning messages", R"(Suppress printing of warning messages. If warnings were
 encountered, qpdf still exits with exit status 3.
 Use --warning-exit-0 with --no-warn to completely ignore
@@ -143,13 +148,19 @@ the structure without changing the content.
 )");
 ap.addOptionHelp("--linearize", "transformation", "linearize (web-optimize) output", R"(Create linearized (web-optimized) output files.
 )");
-ap.addOptionHelp("--encrypt", "transformation", "start encryption options", R"(--encrypt user-password owner-password key-length [options] --
+ap.addOptionHelp("--encrypt", "transformation", "start encryption options", R"(--encrypt [options] --
 
 Run qpdf --help=encryption for details.
 )");
 ap.addOptionHelp("--decrypt", "transformation", "remove encryption from input file", R"(Create an unencrypted output file even if the input file was
 encrypted. Normally qpdf preserves whatever encryption was
 present on the input file. This option overrides that behavior.
+)");
+ap.addOptionHelp("--remove-restrictions", "transformation", "remove security restrictions from input file", R"(Remove restrictions associated with digitally signed PDF files.
+This may be combined with --decrypt to allow free editing of
+previously signed/encrypted files. This option invalidates and
+disables any digital signatures but leaves their visual
+appearances intact.
 )");
 ap.addOptionHelp("--copy-encryption", "transformation", "copy another file's encryption details", R"(--copy-encryption=file
 
@@ -162,6 +173,9 @@ ap.addOptionHelp("--encryption-file-password", "transformation", "supply passwor
 If the file named in --copy-encryption requires a password, use
 this option to supply the password.
 )");
+}
+static void add_help_3(QPDFArgParser& ap)
+{
 ap.addOptionHelp("--qdf", "transformation", "enable viewing PDF code in a text editor", R"(Create a PDF file suitable for viewing in a text editor and even
 editing. This is for editing the PDF code, not the page contents.
 All streams that can be uncompressed are uncompressed, and
@@ -173,9 +187,6 @@ the "QDF Mode" chapter in the manual.
 ap.addOptionHelp("--no-original-object-ids", "transformation", "omit original object IDs in qdf", R"(Omit comments in a QDF file indicating the object ID an object
 had in the original file.
 )");
-}
-static void add_help_3(QPDFArgParser& ap)
-{
 ap.addOptionHelp("--compress-streams", "transformation", "compress uncompressed streams", R"(--compress-streams=[y|n]
 
 Setting --compress-streams=n prevents qpdf from compressing
@@ -186,9 +197,11 @@ ap.addOptionHelp("--decode-level", "transformation", "control which streams to u
 
 When uncompressing streams, control which types of compression
 schemes should be uncompressed:
-- none: don't uncompress anything
+- none: don't uncompress anything. This is the default with
+  --json-output.
 - generalized: uncompress streams compressed with a
-  general-purpose compression algorithm. This is the default.
+  general-purpose compression algorithm. This is the default
+  except when --json-output is given.
 - specialized: in addition to generalized, also uncompress
   streams compressed with a special-purpose but non-lossy
   compression scheme
@@ -273,33 +286,56 @@ value, even if the file uses features that may not be available
 in that version.
 )");
 ap.addHelpTopic("page-ranges", "page range syntax", R"(A full description of the page range syntax, with examples, can be
-found in the manual. Summary:
+found in the manual. In summary, a range is a comma-separated list
+of groups. A group is a number or a range of numbers separated by a
+dash. A group may be prepended by x to exclude its members from the
+previous group. A number may be one of
 
-- a,b,c    pages a, b, and c
-- a-b      pages a through b inclusive; if a > b, this counts down
-- r<n>     where <n> represents a number is the <n>th page from the end
-- z        the last page, same as r1
+- <n>        where <n> represents a number is the <n>th page
+- r<n>       is the <n>th page from the end
+- z          the last page, same as r1
+
+- a,b,c      pages a, b, and c
+- a-b        pages a through b inclusive; if a > b, this counts down
+- a-b,xc     pages a through b except page c
+- a-b,xc-d   pages a through b except pages c through d
 
 You can append :even or :odd to select every other page from the
 resulting set of pages, where :odd starts with the first page and
 :even starts with the second page. These are odd and even pages
 from the resulting set, not based on the original page numbers.
 )");
-ap.addHelpTopic("modification", "change parts of the PDF", R"(Modification options make systematic changes to certain parts of
-the PDF, causing the PDF to render differently from the original.
-)");
-ap.addOptionHelp("--pages", "modification", "begin page selection", R"(--pages file [--password=password] [page-range] [...] --
-
-Run qpdf --help=page-selection for details.
-)");
 }
 static void add_help_4(QPDFArgParser& ap)
 {
-ap.addOptionHelp("--collate", "modification", "collate with --pages", R"(--collate[=n]
+ap.addHelpTopic("modification", "change parts of the PDF", R"(Modification options make systematic changes to certain parts of
+the PDF, causing the PDF to render differently from the original.
+)");
+ap.addOptionHelp("--pages", "modification", "begin page selection", R"(--pages [--file=]file [options] [...] --
+
+Run qpdf --help=page-selection for details.
+)");
+ap.addOptionHelp("--file", "modification", "source for pages", R"(--file=file
+
+Specify the file for the current page operation. This is used
+with --pages, --overlay, and --underlay and appears between the
+option and the terminating --. Run qpdf --help=page-selection
+for details.
+)");
+ap.addOptionHelp("--range", "modification", "page range", R"(--range=numeric-range
+
+Specify the page range for the current page operation with
+--pages. If omitted, all pages are selected. This is used
+with --pages and appears between --pages and --. Run
+qpdf --help=page-selection for details.
+)");
+ap.addOptionHelp("--collate", "modification", "collate with --pages", R"(--collate[=n[,m,...]]
 
 Collate rather than concatenate pages specified with --pages.
 With a numeric parameter, collate in groups of n. The default
-is 1. Run qpdf --help=page-selection for additional details.
+is 1. With comma-separated numeric parameters, take n from the
+first file, m from the second, etc. Run
+qpdf --help=page-selection for additional details.
 )");
 ap.addOptionHelp("--split-pages", "modification", "write pages to separate files", R"(--split-pages[=n]
 
@@ -380,13 +416,80 @@ ap.addOptionHelp("--keep-inline-images", "modification", "exclude inline images 
 )");
 ap.addOptionHelp("--remove-page-labels", "modification", "remove explicit page numbers", R"(Exclude page labels (explicit page numbers) from the output file.
 )");
+ap.addOptionHelp("--set-page-labels", "modification", "number pages for the entire document", R"(--set-page-labels label-spec ... --
+
+Set page labels (explicit page numbers) for the entire file.
+Each label-spec has the form
+
+first-page:[type][/start[/prefix]]
+
+where
+
+- "first-page" represents a sequential page number using the
+  same format as page ranges: a number, a number preceded by "r"
+  to indicate counting from the end, or "z" indicating the last
+  page
+- "type" is one of
+  - D: Arabic numerals (digits)
+  - A: Upper-case alphabetic characters
+  - a: Lower-case alphabetic characters
+  - R: Upper-case Roman numerals
+  - r: Lower-case Roman numerals
+  - omitted: the page number does not appear, though the prefix,
+    if specified will still appear
+- "start" must be a number >= 1
+- "prefix"` may be any string and is prepended to each page
+  label
+
+The first label spec must have a first-page value of 1,
+indicating the first page of the document. If multiple page
+label specs are specified, they must be given in increasing
+order.
+
+If multiple page label specs are specified, they must be given
+in increasing order.
+
+A given page label spec causes pages to be numbered according to
+that scheme starting with first-page and continuing until the
+next label spec or the end of the document. If you want to omit
+numbering starting at a certain page, you can use first-page: as
+the spec.
+
+Example: "1:r 5:D" would number the first four pages i through
+iv, then the remaining pages with Arabic numerals starting with
+1 and continuing sequentially until the end of the document. For
+additional examples, please consult the manual.
+)");
+}
+static void add_help_5(QPDFArgParser& ap)
+{
 ap.addHelpTopic("encryption", "create encrypted files", R"(Create encrypted files. Usage:
+
+--encrypt \
+  [--user-password=user-password] \
+  [--owner-password=owner-password] \
+  --bits=key-length [options] --
+
+OR
 
 --encrypt user-password owner-password key-length [options] --
 
-Either or both of user-password and owner-password may be empty
-strings. key-length may be 40, 128, or 256. Encryption options are
-terminated by "--" by itself.
+The first form, with flags for the passwords and bit length, was
+introduced in qpdf 11.7.0. Only the --bits option is is mandatory.
+This form allows you to use any text as the password. If passwords
+are specified, they must be given before the --bits option.
+
+The second form has been in qpdf since the beginning and wil
+continue to be supported. Either or both of user-password and
+owner-password may be empty strings.
+
+The key-length parameter must be either 40, 128, or 256. The user
+and/or owner password may be omitted. Omitting either password
+enables the PDF file to be opened without a password. Specifying
+the same value for the user and owner password and specifying an
+empty owner password are both considered insecure.
+
+Encryption options are terminated by "--" by itself.
 
 40-bit encryption is insecure, as is 128-bit encryption without
 AES. Use 256-bit encryption unless you have a specific reason to
@@ -439,6 +542,19 @@ Values for modify-opt:
   annotate                 form + commenting and modifying forms
   all                      allow full document modification
 )");
+ap.addOptionHelp("--user-password", "encryption", "specify user password", R"(--user-password=user-password
+
+Set the user password of the encrypted file.
+)");
+ap.addOptionHelp("--owner-password", "encryption", "specify owner password", R"(--owner-password=owner-password
+
+Set the owner password of the encrypted file.
+)");
+ap.addOptionHelp("--bits", "encryption", "specify encryption key length", R"(--bits={48|128|256}
+
+Specify the encryption key length. For best security, always use
+a key length of 256.
+)");
 ap.addOptionHelp("--accessibility", "encryption", "restrict document accessibility", R"(--accessibility=[y|n]
 
 This option is ignored except with very old encryption formats.
@@ -463,9 +579,6 @@ ap.addOptionHelp("--extract", "encryption", "restrict text/graphic extraction", 
 Enable/disable text/graphic extraction for purposes other than
 accessibility.
 )");
-}
-static void add_help_5(QPDFArgParser& ap)
-{
 ap.addOptionHelp("--form", "encryption", "restrict form filling", R"(--form=[y|n]
 
 Enable/disable whether filling form fields is allowed even if
@@ -530,11 +643,23 @@ should not be used except for compatibility testing.
 )");
 ap.addHelpTopic("page-selection", "select pages from one or more files", R"(Use the --pages option to select pages from multiple files. Usage:
 
+qpdf in.pdf --pages --file=input-file \
+    [--range=page-range] [--password=password] [...] -- out.pdf
+
+OR
+
 qpdf in.pdf --pages input-file [--password=password] [page-range] \
     [...] -- out.pdf
 
 Between --pages and the -- that terminates pages option, repeat
 the following:
+
+--file=filename [--range=page-range] [--password=password] [options]
+
+For compatibility, the file and range can be specified
+positionally. qpdf versions prior to 11.9.0
+require --password=password to immediately follow the filename. In
+the older syntax, repeat the following:
 
 filename [--password=password] [page-range]
 
@@ -554,6 +679,8 @@ Run qpdf --help=page-ranges for help with page ranges.
 
 Use --collate=n to cause pages to be collated in groups of n pages
 (default 1) instead of concatenating the input.
+Use --collate=i,j,k,... to take i from the first, then j from the
+second, then k from the third, then i from the first, etc.
 
 Examples:
 
@@ -562,7 +689,7 @@ Examples:
   information from in.pdf is retained. Note the use of "." to refer
   to in.pdf.
 
-  qpdf in.pdf --pages . a.pdf b.pdf:even -- out.pdf
+  qpdf in.pdf --pages . a.pdf b.pdf 1-z:even -- out.pdf
 
 - Take all the pages from a.pdf, all the pages from b.pdf in
   reverse, and only pages 3 and 6 from c.pdf and write the result
@@ -577,7 +704,7 @@ underlaid on the primary output. Overlaid pages are drawn on top of
 the destination page and may obscure the page. Underlaid pages are
 drawn below the destination page. Usage:
 
-{--overlay|--underlay} file
+{--overlay|--underlay} [--file=]file
       [--password=password]
       [--to=page-range]
       [--from=[page-range]]
@@ -593,8 +720,14 @@ of the primary output until it runs out of pages, and any extra pages are
 ignored. You can also give a page range with --repeat to cause
 those pages to be repeated after the original pages are exhausted.
 
+This options are repeatable. Pages will be stacked in order of
+appearance: first underlays, then the original page, then overlays.
+
 Run qpdf --help=page-ranges for help with page ranges.
 )");
+}
+static void add_help_6(QPDFArgParser& ap)
+{
 ap.addOptionHelp("--to", "overlay-underlay", "destination pages for underlay/overlay", R"(--to=page-range
 
 Specify the range of pages in the primary output to apply
@@ -648,9 +781,6 @@ Examples:
 - D:20210207161528-05'00'   February 7, 2021 at 4:15:28 p.m.
 - D:20210207211528Z         February 7, 2021 at 21:15:28 UTC
 )");
-}
-static void add_help_6(QPDFArgParser& ap)
-{
 ap.addHelpTopic("add-attachment", "attach (embed) files", R"(The options listed below appear between --add-attachment and its
 terminating "--".
 )");
@@ -709,6 +839,9 @@ ap.addHelpTopic("inspection", "inspect PDF files", R"(These options provide tool
 the options in this section are specified, no output file may be
 given.
 )");
+}
+static void add_help_7(QPDFArgParser& ap)
+{
 ap.addOptionHelp("--is-encrypted", "inspection", "silently test whether a file is encrypted", R"(Silently exit with a code indicating the file's encryption status:
 
 0: the file is encrypted
@@ -750,9 +883,6 @@ locations in the file) in a human-readable form. This is
 especially useful for files with cross-reference streams, which
 are stored in a binary format.
 )");
-}
-static void add_help_7(QPDFArgParser& ap)
-{
 ap.addOptionHelp("--show-object", "inspection", "show contents of an object", R"(--show-object={trailer|obj[,gen]}
 
 Show the contents of the given object. This is especially useful
@@ -793,18 +923,24 @@ ap.addOptionHelp("--json", "json", "show file in JSON format", R"(--json[=versio
 
 Generate a JSON representation of the file. This is described in
 depth in the JSON section of the manual. "version" may be a
-specific version or "latest". Run qpdf --json-help for a
-description of the generated JSON object.
+specific version or "latest" (the default). Run qpdf --json-help
+for a description of the generated JSON object.
 )");
-ap.addOptionHelp("--json-help", "json", "show format of JSON output", R"(Describe the format of the JSON output by writing to standard
+ap.addOptionHelp("--json-help", "json", "show format of JSON output", R"(--json-help[=version]
+
+Describe the format of the JSON output by writing to standard
 output a JSON object with the same keys and with values
 containing descriptive text.
 )");
+}
+static void add_help_8(QPDFArgParser& ap)
+{
 ap.addOptionHelp("--json-key", "json", "limit which keys are in JSON output", R"(--json-key=key
 
 This option is repeatable. If given, only the specified
 top-level keys will be included in the JSON output. Otherwise,
-all keys will be included.
+all keys will be included. With --json-output, when not given,
+only the "qpdf" key will appear in the output.
 )");
 ap.addOptionHelp("--json-object", "json", "limit which objects are in JSON", R"(--json-object={trailer|obj[,gen]}
 
@@ -812,8 +948,42 @@ This option is repeatable. If given, only specified objects will
 be shown in the "objects" key of the JSON output. Otherwise, all
 objects will be shown.
 )");
-ap.addOptionHelp("--job-json-help", "json", "show format of job JSON", R"(Describe the format of the QPDFJob JSON input used by
---job-json-file.
+ap.addOptionHelp("--json-stream-data", "json", "how to handle streams in json output", R"(--json-stream-data={none|inline|file}
+
+When used with --json, this option controls whether streams in
+json output should be omitted, written inline (base64-encoded)
+or written to a file. If "file" is chosen, the file will be the
+name of the output file appended with -nnn where nnn is the
+object number. The prefix can be overridden with
+--json-stream-prefix. The default is "none", except
+when --json-output is specified, in which case the default is
+"inline".
+)");
+ap.addOptionHelp("--json-stream-prefix", "json", "prefix for json stream data files", R"(--json-stream-prefix=file-prefix
+
+When used with --json-stream-data=file, --json-stream-data=file-prefix
+sets the prefix for stream data files, overriding the default,
+which is to use the output file name. Whatever is given here
+will be appended with -nnn to create the name of the file that
+will contain the data for the stream stream in object nnn.
+)");
+ap.addOptionHelp("--json-output", "json", "apply defaults for JSON serialization", R"(--json-output[=version]
+
+Implies --json=version. Changes default values for certain
+options so that the JSON output written is the most faithful
+representation of the original PDF and contains no additional
+JSON keys. See also --json-stream-data, --json-stream-prefix,
+and --decode-level.
+)");
+ap.addOptionHelp("--json-input", "json", "input file is qpdf JSON", R"(Treat the input file as a JSON file in qpdf JSON format. See the
+"qpdf JSON Format" section of the manual for information about
+how to use this option.
+)");
+ap.addOptionHelp("--update-from-json", "json", "update a PDF from qpdf JSON", R"(--update-from-json=qpdf-json-file
+
+Update a PDF file from a JSON file. Please see the "qpdf JSON"
+chapter of the manual for information about how to use this
+option.
 )");
 ap.addHelpTopic("testing", "options for testing or debugging", R"(The options below are useful when writing automated test code that
 includes files created by qpdf or when testing qpdf itself.
@@ -833,6 +1003,12 @@ Write the first pass of linearization to the named file. The
 resulting file is not a valid PDF file. This option is useful only
 for debugging qpdf.
 )");
+ap.addOptionHelp("--test-json-schema", "testing", "test generated json against schema", R"(This is used by qpdf's test suite to check consistency between
+the output of qpdf --json and the output of qpdf --json-help.
+)");
+ap.addOptionHelp("--report-memory-usage", "testing", "best effort report of memory usage", R"(This is used by qpdf's performance test suite to report the
+maximum amount of memory used in supported environments.
+)");
 }
 static void add_help(QPDFArgParser& ap)
 {
@@ -843,6 +1019,7 @@ static void add_help(QPDFArgParser& ap)
     add_help_5(ap);
     add_help_6(ap);
     add_help_7(ap);
+    add_help_8(ap);
 ap.addHelpFooter("For detailed help, visit the qpdf manual: https://qpdf.readthedocs.io\n");
 }
 

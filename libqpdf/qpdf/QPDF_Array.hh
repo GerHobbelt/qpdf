@@ -1,45 +1,53 @@
 #ifndef QPDF_ARRAY_HH
 #define QPDF_ARRAY_HH
 
-#include <qpdf/QPDFObject.hh>
+#include <qpdf/QPDFValue.hh>
 
+#include <map>
 #include <vector>
-#include <list>
-#include <qpdf/SparseOHArray.hh>
 
-class QPDF_Array: public QPDFObject
+class QPDF_Array: public QPDFValue
 {
+  private:
+    struct Sparse
+    {
+        int size{0};
+        std::map<int, std::shared_ptr<QPDFObject>> elements;
+    };
+
   public:
-    QPDF_Array(std::vector<QPDFObjectHandle> const& items);
-    QPDF_Array(SparseOHArray const& items);
-    virtual ~QPDF_Array();
-    virtual std::string unparse();
-    virtual JSON getJSON();
-    virtual QPDFObject::object_type_e getTypeCode() const;
-    virtual char const* getTypeName() const;
-    virtual void setDescription(QPDF*, std::string const&);
+    ~QPDF_Array() override = default;
+    static std::shared_ptr<QPDFObject> create(std::vector<QPDFObjectHandle> const& items);
+    static std::shared_ptr<QPDFObject>
+    create(std::vector<std::shared_ptr<QPDFObject>>&& items, bool sparse);
+    std::shared_ptr<QPDFObject> copy(bool shallow = false) override;
+    std::string unparse() override;
+    void writeJSON(int json_version, JSON::Writer& p) override;
+    void disconnect() override;
 
-    int getNItems() const;
-    QPDFObjectHandle getItem(int n) const;
-    void getAsVector(std::vector<QPDFObjectHandle>&) const;
-
-    void setItem(int, QPDFObjectHandle const&);
+    int
+    size() const noexcept
+    {
+        return sp ? sp->size : int(elements.size());
+    }
+    QPDFObjectHandle at(int n) const noexcept;
+    bool setAt(int n, QPDFObjectHandle const& oh);
+    std::vector<QPDFObjectHandle> getAsVector() const;
     void setFromVector(std::vector<QPDFObjectHandle> const& items);
-    void insertItem(int at, QPDFObjectHandle const& item);
-    void appendItem(QPDFObjectHandle const& item);
-    void eraseItem(int at);
-
-    // Helper methods for QPDF and QPDFObjectHandle -- these are
-    // public methods since the whole class is not part of the public
-    // API. Otherwise, these would be wrapped in accessor classes.
-    SparseOHArray const& getElementsForShallowCopy() const;
-    void addExplicitElementsToList(std::list<QPDFObjectHandle>&) const;
-
-  protected:
-    virtual void releaseResolved();
+    bool insert(int at, QPDFObjectHandle const& item);
+    void push_back(QPDFObjectHandle const& item);
+    bool erase(int at);
 
   private:
-    SparseOHArray elements;
+    QPDF_Array();
+    QPDF_Array(QPDF_Array const&);
+    QPDF_Array(std::vector<QPDFObjectHandle> const& items);
+    QPDF_Array(std::vector<std::shared_ptr<QPDFObject>>&& items, bool sparse);
+
+    void checkOwnership(QPDFObjectHandle const& item) const;
+
+    std::unique_ptr<Sparse> sp;
+    std::vector<std::shared_ptr<QPDFObject>> elements;
 };
 
 #endif // QPDF_ARRAY_HH

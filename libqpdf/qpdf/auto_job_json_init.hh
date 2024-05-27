@@ -3,6 +3,8 @@
 // Edits will be automatically overwritten if the build is
 // run in maintainer mode.
 //
+// clang-format off
+//
 static char const* yn_choices[] = {"y", "n", 0};
 static char const* password_mode_choices[] = {"bytes", "hex-bytes", "unicode", "auto", 0};
 static char const* stream_data_choices[] = {"compress", "preserve", "uncompress", 0};
@@ -10,8 +12,11 @@ static char const* decode_level_choices[] = {"none", "generalized", "specialized
 static char const* object_streams_choices[] = {"disable", "preserve", "generate", 0};
 static char const* remove_unref_choices[] = {"auto", "yes", "no", 0};
 static char const* flatten_choices[] = {"all", "print", "screen", 0};
-static char const* json_version_choices[] = {"1", "latest", 0};
-static char const* json_key_choices[] = {"acroform", "attachments", "encrypt", "objectinfo", "objects", "outlines", "pagelabels", "pages", 0};
+static char const* json_key_choices[] = {"acroform", "attachments", "encrypt", "objectinfo", "objects", "outlines", "pagelabels", "pages", "qpdf", 0};
+static char const* json_output_choices[] = {"2", "latest", 0};
+static char const* json_stream_data_choices[] = {"none", "inline", "file", 0};
+static char const* json_version_choices[] = {"1", "2", "latest", 0};
+static char const* enc_bits_choices[] = {"40", "128", "256", 0};
 static char const* print128_choices[] = {"full", "low", "none", 0};
 static char const* modify128_choices[] = {"all", "annotate", "form", "assembly", "none", 0};
 
@@ -27,6 +32,9 @@ popHandler(); // key: passwordFile
 pushKey("empty");
 setupEmpty();
 popHandler(); // key: empty
+pushKey("jsonInput");
+addBare([this]() { c_main->jsonInput(); });
+popHandler(); // key: jsonInput
 pushKey("outputFile");
 setupOutputFile();
 popHandler(); // key: outputFile
@@ -99,6 +107,12 @@ popHandler(); // key: progress
 pushKey("splitPages");
 addParameter([this](std::string const& p) { c_main->splitPages(p); });
 popHandler(); // key: splitPages
+pushKey("jsonOutput");
+addChoices(json_output_choices, false, [this](std::string const& p) { c_main->jsonOutput(p); });
+popHandler(); // key: jsonOutput
+pushKey("removeRestrictions");
+addBare([this]() { c_main->removeRestrictions(); });
+popHandler(); // key: removeRestrictions
 pushKey("encrypt");
 beginDict(bindJSON(&Handlers::beginEncrypt), bindBare(&Handlers::endEncrypt)); // .encrypt
 pushKey("userPassword");
@@ -107,6 +121,8 @@ popHandler(); // key: userPassword
 pushKey("ownerPassword");
 setupEncryptOwnerPassword();
 popHandler(); // key: ownerPassword
+pushKey("Bits");
+popHandler(); // key: Bits
 pushKey("40bit");
 beginDict(bindJSON(&Handlers::beginEncrypt40bit), bindBare(&Handlers::endEncrypt40bit)); // .encrypt.40bit
 pushKey("annotate");
@@ -250,6 +266,15 @@ beginArray(bindJSON(&Handlers::beginJsonObjectArray), bindBare(&Handlers::endJso
 addParameter([this](std::string const& p) { c_main->jsonObject(p); });
 popHandler(); // array: .jsonObject[]
 popHandler(); // key: jsonObject
+pushKey("jsonStreamData");
+addChoices(json_stream_data_choices, true, [this](std::string const& p) { c_main->jsonStreamData(p); });
+popHandler(); // key: jsonStreamData
+pushKey("jsonStreamPrefix");
+addParameter([this](std::string const& p) { c_main->jsonStreamPrefix(p); });
+popHandler(); // key: jsonStreamPrefix
+pushKey("updateFromJson");
+addParameter([this](std::string const& p) { c_main->updateFromJson(p); });
+popHandler(); // key: updateFromJson
 pushKey("allowWeakCrypto");
 addBare([this]() { c_main->allowWeakCrypto(); });
 popHandler(); // key: allowWeakCrypto
@@ -265,6 +290,9 @@ popHandler(); // key: noWarn
 pushKey("verbose");
 addBare([this]() { c_main->verbose(); });
 popHandler(); // key: verbose
+pushKey("testJsonSchema");
+addBare([this]() { c_main->testJsonSchema(); });
+popHandler(); // key: testJsonSchema
 pushKey("ignoreXrefStreams");
 addBare([this]() { c_main->ignoreXrefStreams(); });
 popHandler(); // key: ignoreXrefStreams
@@ -325,7 +353,9 @@ popHandler(); // key: replace
 popHandler(); // array: .addAttachment[]
 popHandler(); // key: addAttachment
 pushKey("removeAttachment");
+beginArray(bindJSON(&Handlers::beginRemoveAttachmentArray), bindBare(&Handlers::endRemoveAttachmentArray)); // .removeAttachment[]
 addParameter([this](std::string const& p) { c_main->removeAttachment(p); });
+popHandler(); // array: .removeAttachment[]
 popHandler(); // key: removeAttachment
 pushKey("copyAttachmentsFrom");
 beginArray(bindJSON(&Handlers::beginCopyAttachmentsFromArray), bindBare(&Handlers::endCopyAttachmentsFromArray)); // .copyAttachmentsFrom[]
@@ -378,17 +408,26 @@ pushKey("password");
 setupPagesPassword();
 popHandler(); // key: password
 pushKey("range");
-setupPagesRange();
+addParameter([this](std::string const& p) { c_pages->range(p); });
 popHandler(); // key: range
 popHandler(); // array: .pages[]
 popHandler(); // key: pages
 pushKey("removePageLabels");
 addBare([this]() { c_main->removePageLabels(); });
 popHandler(); // key: removePageLabels
+pushKey("reportMemoryUsage");
+addBare([this]() { c_main->reportMemoryUsage(); });
+popHandler(); // key: reportMemoryUsage
 pushKey("rotate");
 addParameter([this](std::string const& p) { c_main->rotate(p); });
 popHandler(); // key: rotate
+pushKey("setPageLabels");
+beginArray(bindJSON(&Handlers::beginSetPageLabelsArray), bindBare(&Handlers::endSetPageLabelsArray)); // .setPageLabels[]
+setupSetPageLabels();
+popHandler(); // array: .setPageLabels[]
+popHandler(); // key: setPageLabels
 pushKey("overlay");
+beginArray(bindJSON(&Handlers::beginOverlayArray), bindBare(&Handlers::endOverlayArray)); // .overlay[]
 beginDict(bindJSON(&Handlers::beginOverlay), bindBare(&Handlers::endOverlay)); // .overlay
 pushKey("file");
 setupOverlayFile();
@@ -405,8 +444,10 @@ popHandler(); // key: repeat
 pushKey("to");
 addParameter([this](std::string const& p) { c_uo->to(p); });
 popHandler(); // key: to
+popHandler(); // array: .overlay[]
 popHandler(); // key: overlay
 pushKey("underlay");
+beginArray(bindJSON(&Handlers::beginUnderlayArray), bindBare(&Handlers::endUnderlayArray)); // .underlay[]
 beginDict(bindJSON(&Handlers::beginUnderlay), bindBare(&Handlers::endUnderlay)); // .underlay
 pushKey("file");
 setupUnderlayFile();
@@ -423,6 +464,7 @@ popHandler(); // key: repeat
 pushKey("to");
 addParameter([this](std::string const& p) { c_uo->to(p); });
 popHandler(); // key: to
+popHandler(); // array: .underlay[]
 popHandler(); // key: underlay
 pushKey("warningExit0");
 addBare([this]() { c_main->warningExit0(); });

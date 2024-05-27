@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2021 Jay Berkenbilt
+// Copyright (c) 2005-2024 Jay Berkenbilt
 //
 // This file is part of qpdf.
 //
@@ -77,19 +77,21 @@ class QPDF_DLL_CLASS QPDFCryptoImpl
     virtual void RC4_init(unsigned char const* key_data, int key_len = -1) = 0;
     // out_data = 0 means to encrypt/decrypt in place
     QPDF_DLL
-    virtual void RC4_process(unsigned char* in_data, size_t len,
-                             unsigned char* out_data = 0) = 0;
+    virtual void
+    RC4_process(unsigned char const* in_data, size_t len, unsigned char* out_data = nullptr) = 0;
     QPDF_DLL
     virtual void RC4_finalize() = 0;
 
     static size_t constexpr rijndael_buf_size = 16;
     QPDF_DLL
     virtual void rijndael_init(
-        bool encrypt, unsigned char const* key_data, size_t key_len,
-        bool cbc_mode, unsigned char* cbc_block) = 0;
+        bool encrypt,
+        unsigned char const* key_data,
+        size_t key_len,
+        bool cbc_mode,
+        unsigned char* cbc_block) = 0;
     QPDF_DLL
-    virtual void rijndael_process(
-        unsigned char* in_data, unsigned char* out_data) = 0;
+    virtual void rijndael_process(unsigned char* in_data, unsigned char* out_data) = 0;
     QPDF_DLL
     virtual void rijndael_finalize() = 0;
 };

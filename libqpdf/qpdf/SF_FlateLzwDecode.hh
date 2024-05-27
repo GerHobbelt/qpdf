@@ -3,16 +3,16 @@
 #include <vector>
 
 #ifndef SF_FLATELZWDECODE_HH
-#define SF_FLATELZWDECODE_HH
+# define SF_FLATELZWDECODE_HH
 
 class SF_FlateLzwDecode: public QPDFStreamFilter
 {
   public:
     SF_FlateLzwDecode(bool lzw);
-    virtual ~SF_FlateLzwDecode() = default;
+    ~SF_FlateLzwDecode() override = default;
 
-    virtual bool setDecodeParms(QPDFObjectHandle decode_parms);
-    virtual Pipeline* getDecodePipeline(Pipeline* next);
+    bool setDecodeParms(QPDFObjectHandle decode_parms) override;
+    Pipeline* getDecodePipeline(Pipeline* next) override;
 
     static std::shared_ptr<QPDFStreamFilter> flate_factory();
     static std::shared_ptr<QPDFStreamFilter> lzw_factory();

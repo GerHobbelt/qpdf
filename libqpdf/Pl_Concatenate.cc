@@ -1,24 +1,17 @@
 #include <qpdf/Pl_Concatenate.hh>
 
-Pl_Concatenate::Members::Members()
-{
-}
-
-Pl_Concatenate::Members::~Members()
-{
-}
-
 Pl_Concatenate::Pl_Concatenate(char const* identifier, Pipeline* next) :
     Pipeline(identifier, next)
 {
 }
 
-Pl_Concatenate::~Pl_Concatenate()
+Pl_Concatenate::~Pl_Concatenate() // NOLINT (modernize-use-equals-default)
 {
+    // Must be explicit and not inline -- see QPDF_DLL_CLASS in README-maintainer
 }
 
 void
-Pl_Concatenate::write(unsigned char* data, size_t len)
+Pl_Concatenate::write(unsigned char const* data, size_t len)
 {
     getNext()->write(data, len);
 }
@@ -33,4 +26,3 @@ Pl_Concatenate::manualFinish()
 {
     getNext()->finish();
 }
-

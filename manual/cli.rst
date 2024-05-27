@@ -171,7 +171,9 @@ Related Options
    equivalent command-line arguments were supplied. It can be repeated
    and mixed freely with other options. Run ``qpdf`` with
    :qpdf:ref:`--job-json-help` for a description of the job JSON input
-   file format. For more information, see :ref:`qpdf-job`.
+   file format. For more information, see :ref:`qpdf-job`. Note that
+   this is unrelated to :qpdf:ref:`--json` but may be combined with
+   it.
 
 .. _exit-status:
 
@@ -182,10 +184,10 @@ Exit Status
 
    Meaning of exit codes:
 
-   0: no errors or warnings
-   1: not used by qpdf but may be used by the shell if unable to invoke qpdf
-   2: errors detected
-   3: warnings detected, unless --warning-exit-0 is given
+   - 0: no errors or warnings
+   - 1: not used by qpdf but may be used by the shell if unable to invoke qpdf
+   - 2: errors detected
+   - 3: warnings detected, unless --warning-exit-0 is given
 
 The exit status of :command:`qpdf` may be interpreted as follows:
 
@@ -341,6 +343,17 @@ Related Options
    itself. The default provider is always listed first. See
    :ref:`crypto` for more information about crypto providers.
 
+.. qpdf:option:: --job-json-help
+
+   .. help: show format of job JSON
+
+      Describe the format of the QPDFJob JSON input used by
+      --job-json-file.
+
+   Describe the format of the QPDFJob JSON input used by
+   :qpdf:ref:`--job-json-file`. For more information about QPDFJob,
+   see :ref:`qpdf-job`.
+
 .. _general-options:
 
 General Options
@@ -470,11 +483,17 @@ Related Options
       option is necessary to create 40-bit files or 128-bit files that
       use RC4 encryption.
 
-   Starting with version 10.4, qpdf issues warnings when requested to
-   create files using RC4 encryption. This option suppresses those
-   warnings. In future versions of qpdf, qpdf will refuse to create
-   files with weak cryptography when this flag is not given. See
+   Encrypted PDF files using 40-bit keys or 128-bit keys without AES
+   use the insecure *RC4* encryption algorithm. Starting with version
+   11.0, qpdf's default behavior is to refuse to write files using RC4
+   encryption. Use this option to allow creation of such files. In
+   versions 10.4 through 10.6, attempting to create weak encrypted
+   files was a warning, rather than an error, without this flag. See
    :ref:`weak-crypto` for additional details.
+
+   No check is performed for weak crypto when preserving encryption
+   parameters from or copying encryption parameters from other files.
+   The rationale for this is discussed in :ref:`weak-crypto`.
 
 .. qpdf:option:: --keep-files-open=[y|n]
 
@@ -695,7 +714,7 @@ Related Options
    important cross-reference information typically appears at the end
    of the file.
 
-.. qpdf:option:: --encrypt user-password owner-password key-length [options] --
+.. qpdf:option:: --encrypt [options] --
 
    .. help: start encryption options
 
@@ -717,7 +736,24 @@ Related Options
    whatever encryption was present on the input file. This
    functionality is not intended to be used for bypassing copyright
    restrictions or other restrictions placed on files by their
-   producers. See also :qpdf:ref:`--copy-encryption`.
+   producers. See also :qpdf:ref:`--copy-encryption` and
+   :qpdf:ref:`--remove-restrictions`.
+
+.. qpdf:option:: --remove-restrictions
+
+   .. help: remove security restrictions from input file
+
+      Remove restrictions associated with digitally signed PDF files.
+      This may be combined with --decrypt to allow free editing of
+      previously signed/encrypted files. This option invalidates and
+      disables any digital signatures but leaves their visual
+      appearances intact.
+
+   Remove security restrictions associated with digitally signed PDF
+   files. This may be combined with :qpdf:ref:`--decrypt` to allow
+   free editing of previously signed/encrypted files. This option
+   invalidates and disables any digital signatures but leaves their
+   visual appearances intact.
 
 .. qpdf:option:: --copy-encryption=file
 
@@ -740,6 +776,9 @@ Related Options
    of qpdf, and then want to restore the original encryption on the
    file without having to manual specify all the individual settings.
    See also :qpdf:ref:`--decrypt`.
+
+   Checks for weak cryptographic algorithms are intentionally not made
+   by this operation. See :ref:`weak-crypto` for the rationale.
 
 .. qpdf:option:: --encryption-file-password=password
 
@@ -833,7 +872,7 @@ Related Options
    and gzip) unless those streams are compressed in some other way.
    This analysis is made after qpdf attempts to uncompress streams and
    is therefore closely related to :qpdf:ref:`--decode-level`. To
-   suppress this behavior and leave streams streams uncompressed, use
+   suppress this behavior and leave streams uncompressed, use
    :samp:`--compress-streams=n`. In QDF mode (see :ref:`qdf` and
    :qpdf:ref:`--qdf`), the default is to leave streams uncompressed.
 
@@ -843,9 +882,11 @@ Related Options
 
       When uncompressing streams, control which types of compression
       schemes should be uncompressed:
-      - none: don't uncompress anything
+      - none: don't uncompress anything. This is the default with
+        --json-output.
       - generalized: uncompress streams compressed with a
-        general-purpose compression algorithm. This is the default.
+        general-purpose compression algorithm. This is the default
+        except when --json-output is given.
       - specialized: in addition to generalized, also uncompress
         streams compressed with a special-purpose but non-lossy
         compression scheme
@@ -858,14 +899,16 @@ Related Options
 
    The following values for :samp:`{parameter}` are available:
 
-   - :samp:`none`: do not attempt to decode any streams
+   - :samp:`none`: do not attempt to decode any streams. This is the
+     default with :qpdf:ref:`--json-output`.
 
    - :samp:`generalized`: decode streams filtered with supported
      generalized filters: ``/LZWDecode``, ``/FlateDecode``,
      ``/ASCII85Decode``, and ``/ASCIIHexDecode``. We define
      generalized filters as those to be used for general-purpose
      compression or encoding, as opposed to filters specifically
-     designed for image data.
+     designed for image data. This is the default except when
+     :qpdf:ref:`--json-output` is given.
 
    - :samp:`specialized`: in addition to generalized, decode streams
      with supported non-lossy specialized filters; currently this is
@@ -887,7 +930,9 @@ Related Options
    qpdf will recompress streams with generalized filters using flate
    compression, effectively eliminating LZW and ASCII-based filters.
    This is usually desirable behavior but can be disabled with
-   ``--decode-level=none``.
+   ``--decode-level=none``. Note that ``--decode-level=none`` is the
+   default when :qpdf:ref:`--json-output` is specified, but it can be
+   overridden in that case as well.
 
    As a special case, streams already compressed with ``/FlateDecode``
    are not uncompressed and recompressed. You can change this behavior
@@ -1229,12 +1274,19 @@ Page Ranges
 .. help-topic page-ranges: page range syntax
 
    A full description of the page range syntax, with examples, can be
-   found in the manual. Summary:
+   found in the manual. In summary, a range is a comma-separated list
+   of groups. A group is a number or a range of numbers separated by a
+   dash. A group may be prepended by x to exclude its members from the
+   previous group. A number may be one of
 
-   - a,b,c    pages a, b, and c
-   - a-b      pages a through b inclusive; if a > b, this counts down
-   - r<n>     where <n> represents a number is the <n>th page from the end
-   - z        the last page, same as r1
+   - <n>        where <n> represents a number is the <n>th page
+   - r<n>       is the <n>th page from the end
+   - z          the last page, same as r1
+
+   - a,b,c      pages a, b, and c
+   - a-b        pages a through b inclusive; if a > b, this counts down
+   - a-b,xc     pages a through b except page c
+   - a-b,xc-d   pages a through b except pages c through d
 
    You can append :even or :odd to select every other page from the
    resulting set of pages, where :odd starts with the first page and
@@ -1257,6 +1309,10 @@ section describes the syntax of a page range.
 - Two page numbers separated by dashes represents the inclusive range
   of pages from the first to the second. If the first number is higher
   than the second number, it is the range of pages in reverse.
+
+- A number or dash-separated range of numbers may be prepended with
+  ``x`` (from qpdf 11.7.1). This means to exclude the pages in that
+  range from the previous range that didn't start with ``x``.
 
 - The range may be appended with ``:odd`` or ``:even`` to select only
   pages from the resulting range in odd or even positions. In this
@@ -1305,6 +1361,16 @@ section describes the syntax of a page range.
      - pages 7 and 9, which are the pages in even positions from the
        original set of 5, 7, 8, 9, 12
 
+   - - ``1-10,x3-4``
+     - pages 1 through 10 except pages 3 and 4 (1, 2, and 5
+       through 10)
+
+   - - ``4-10,x7-9,12-8,xr5``
+     - In a 15-page file, this is 4, 5, 6, 10, 12, 10, 9, and 8 in
+       that order. That is pages 4 through 10 except 7 through 9
+       followed by 12 through 8 descending except 11 (the fifth page
+       from the end)
+
 .. _modification-options:
 
 PDF Modification
@@ -1322,7 +1388,7 @@ PDF, causing the PDF to render differently from the original. See also
 Related Options
 ~~~~~~~~~~~~~~~
 
-.. qpdf:option:: --pages file [--password=password] [page-range] [...] --
+.. qpdf:option:: --pages [--file=]file [options] [...] --
 
    .. help: begin page selection
 
@@ -1337,18 +1403,53 @@ Related Options
    See also :qpdf:ref:`--split-pages`, :qpdf:ref:`--collate`,
    :ref:`page-ranges`.
 
-.. qpdf:option:: --collate[=n]
+.. qpdf:option:: --file=file
+
+   .. help: source for pages
+
+      Specify the file for the current page operation. This is used
+      with --pages, --overlay, and --underlay and appears between the
+      option and the terminating --. Run qpdf --help=page-selection
+      for details.
+
+   Specify the file for the current page operation. This option is
+   used with :qpdf:ref:`--pages`, :qpdf:ref:`--overlay` and
+   :qpdf:ref:`--underlay` and appears between the option and the
+   terminating ``--``.
+
+   Please see :ref:`page-selection` for additional details.
+
+.. qpdf:option:: --range=numeric-range
+
+   .. help: page range
+
+      Specify the page range for the current page operation with
+      --pages. If omitted, all pages are selected. This is used
+      with --pages and appears between --pages and --. Run
+      qpdf --help=page-selection for details.
+
+   Specify the page range for the current page operation with
+   :qpdf:ref:`--pages`. If omitted, all pages are selected. This
+   option is used with :qpdf:ref:`--pages` and appears between
+   :qpdf:ref:`--pages` and ``--``.
+
+   Please see :ref:`page-selection` for additional details.
+
+.. qpdf:option:: --collate[=n[,m,...]]
 
    .. help: collate with --pages
 
       Collate rather than concatenate pages specified with --pages.
       With a numeric parameter, collate in groups of n. The default
-      is 1. Run qpdf --help=page-selection for additional details.
+      is 1. With comma-separated numeric parameters, take n from the
+      first file, m from the second, etc. Run
+      qpdf --help=page-selection for additional details.
 
    This option causes :command:`qpdf` to collate rather than
    concatenate pages specified with :qpdf:ref:`--pages`. With a
    numeric parameter, collate in groups of :samp:`{n}`. The default
-   is 1.
+   is 1. With comma-separated numeric parameters, take :samp:`{n}`
+   from the first file, :samp:`{m}` from the second, etc.
 
    Please see :ref:`page-selection` for additional details.
 
@@ -1587,6 +1688,10 @@ Related Options
      :command:`qpdf` does not know enough about fonts and encodings to
      correctly represent characters that fall outside of this range.
 
+   - For variable text fields where the default appearance stream
+     specifies that the font should be auto-sized, a fixed font size
+     is used rather than calculating the font size.
+
    - Quadding is ignored. Quadding is used to specify whether the
      contents of a field should be left, center, or right aligned with
      the field.
@@ -1674,7 +1779,134 @@ Related Options
 
       Exclude page labels (explicit page numbers) from the output file.
 
-   Exclude page labels (explicit page numbers) from the output file.
+   Exclude page labels (explicit page numbers) from the output file by
+   omitting the ``/PageLabels`` dictionary in the document catalog.
+   See also :qpdf:ref:`--set-page-labels`.
+
+.. qpdf:option:: --set-page-labels label-spec ... --
+
+   .. help: number pages for the entire document
+
+      Set page labels (explicit page numbers) for the entire file.
+      Each label-spec has the form
+
+      first-page:[type][/start[/prefix]]
+
+      where
+
+      - "first-page" represents a sequential page number using the
+        same format as page ranges: a number, a number preceded by "r"
+        to indicate counting from the end, or "z" indicating the last
+        page
+      - "type" is one of
+        - D: Arabic numerals (digits)
+        - A: Upper-case alphabetic characters
+        - a: Lower-case alphabetic characters
+        - R: Upper-case Roman numerals
+        - r: Lower-case Roman numerals
+        - omitted: the page number does not appear, though the prefix,
+          if specified will still appear
+      - "start" must be a number >= 1
+      - "prefix"` may be any string and is prepended to each page
+        label
+
+      The first label spec must have a first-page value of 1,
+      indicating the first page of the document. If multiple page
+      label specs are specified, they must be given in increasing
+      order.
+
+      If multiple page label specs are specified, they must be given
+      in increasing order.
+
+      A given page label spec causes pages to be numbered according to
+      that scheme starting with first-page and continuing until the
+      next label spec or the end of the document. If you want to omit
+      numbering starting at a certain page, you can use first-page: as
+      the spec.
+
+      Example: "1:r 5:D" would number the first four pages i through
+      iv, then the remaining pages with Arabic numerals starting with
+      1 and continuing sequentially until the end of the document. For
+      additional examples, please consult the manual.
+
+   Set page labels (explicit page numbers) for the entire file. This
+   generates a ``/PageLabels`` dictionary in the document catalog. A
+   PDF file's pages can be explicitly numbered using page labels. Page
+   labels in a PDF file have an optional type (Arabic numerals,
+   upper/lower-case alphabetic characters, upper/lower-case Roman
+   numerals), an optional prefix, and an optional starting value,
+   which defaults to 1. A qpdf page label spec has the form
+
+   :samp:`{first-page}:[{type}][/{start}[/{prefix}]]`
+
+   where
+
+   - :samp:`{first-page}` represents a sequential page number using
+     the same format as page ranges (see :ref:`page-ranges`): a
+     number, a number preceded by ``r`` to indicate counting from the
+     end, or ``z`` indicating the last page
+
+   - :samp:`{type}` may be one of
+
+     - ``D``: Arabic numerals (digits)
+
+     - ``A``: Upper-case alphabetic characters
+
+     - ``a``: Lower-case alphabetic characters
+
+     - ``R``: Upper-case Roman numerals
+
+     - ``r``: Lower-case Roman numerals
+
+     - omitted: the page number does not appear, though the prefix, if
+       specified will still appear
+
+   - :samp:`{start}` must be a number ≥ 1
+
+   - :samp:`{prefix}` may be any string and is prepended to each page
+     label
+
+   The first label spec must have a :samp:`{first-page}` value of
+   ``1``, indicating the first page of the document. If multiple page
+   label specs are specified, they must be given in increasing order.
+
+   A given page label spec causes pages to be numbered according to
+   that scheme starting with :samp:`{first-page}` and continuing until
+   the next label spec or the end of the document. If you want to omit
+   numbering starting at a certain page, you can use
+   :samp:`{first-page}:` as the spec.
+
+   Here are some example page labeling schemes. For these examples,
+   assume a 50-page document.
+
+   - ``1:a 5:D``
+
+     - The first four pages will be numbered ``a`` through ``d``, then
+       the remaining pages will numbered ``1`` through ``46``.
+
+   - ``1:r 5:D 12: 14:D/10 r5:D//A- z://"end note"``:
+
+     - The first four pages are numbered ``i`` through ``iv``
+
+     - The 5th page is numbered ``1``, and pages are numbered
+       sequentially through the 11th page, which will be numbered
+       ``7``
+
+     - The 12th and 13th pages will not have labels
+
+     - The 14th page is numbered ``10``. Pages will be numbered
+       sequentially up through the 45th page, which will be numbered
+       ``41``
+
+     - Starting with the 46th page (the fifth to last page) and going
+       to the 49th page, pages will be labeled ``A-1`` through ``A-4``
+
+     - The 50th page (the last page) will be labeled ``end note``.
+
+   The limitations on the range of formats for page labels are as
+   specified in Section 12.4.2 of the PDF spec, ISO 32000.
+
+   See also :qpdf:ref:`--remove-page-labels`.
 
 .. _encryption-options:
 
@@ -1685,11 +1917,31 @@ Encryption
 
    Create encrypted files. Usage:
 
+   --encrypt \
+     [--user-password=user-password] \
+     [--owner-password=owner-password] \
+     --bits=key-length [options] --
+
+   OR
+
    --encrypt user-password owner-password key-length [options] --
 
-   Either or both of user-password and owner-password may be empty
-   strings. key-length may be 40, 128, or 256. Encryption options are
-   terminated by "--" by itself.
+   The first form, with flags for the passwords and bit length, was
+   introduced in qpdf 11.7.0. Only the --bits option is is mandatory.
+   This form allows you to use any text as the password. If passwords
+   are specified, they must be given before the --bits option.
+
+   The second form has been in qpdf since the beginning and wil
+   continue to be supported. Either or both of user-password and
+   owner-password may be empty strings.
+
+   The key-length parameter must be either 40, 128, or 256. The user
+   and/or owner password may be omitted. Omitting either password
+   enables the PDF file to be opened without a password. Specifying
+   the same value for the user and owner password and specifying an
+   empty owner password are both considered insecure.
+
+   Encryption options are terminated by "--" by itself.
 
    40-bit encryption is insecure, as is 128-bit encryption without
    AES. Use 256-bit encryption unless you have a specific reason to
@@ -1748,15 +2000,38 @@ and :qpdf:ref:`--copy-encryption`. For a more in-depth technical
 discussion of how PDF encryption works internally, see
 :ref:`pdf-encryption`.
 
-To create an encrypted file, use
+To create an encrypted file, use one of
+
+::
+
+   --encrypt \
+     [--user-password=user-password] \
+     [--owner-password=owner-password] \
+     --bits=key-length [options] --
+
+OR
 
 ::
 
    --encrypt user-password owner-password key-length [options] --
 
-Either or both of :samp:`{user-password}` and :samp:`{owner-password}`
-may be empty strings. :samp:`{key-length}` may be ``40``, ``128``, or
-``256``. Encryption options are terminated by ``--`` by itself.
+The first form, with flags for the passwords and bit length, was
+introduced in qpdf 11.7.0. Only the :qpdf:ref:`--bits` option is is
+mandatory. This form allows you to use any text as the password. If
+passwords are specified, they must be given before the
+:qpdf:ref:`--bits` option.
+
+The second form has been in qpdf since the beginning and wil
+continue to be supported. Either or both of user-password and
+owner-password may be empty strings.
+
+The ``key-length`` parameter must be either ``40``, ``128``, or
+``256``. The user and/or owner password may be omitted. Omitting
+either password enables the PDF file to be opened without a password.
+Specifying the same value for the user and owner password and
+specifying an empty owner password are both considered insecure.
+
+Encryption options are terminated by ``--`` by itself.
 
 40-bit encryption is insecure, as is 128-bit encryption without AES.
 Use 256-bit encryption unless you have a specific reason to use an
@@ -1893,6 +2168,36 @@ help for each option.
 
 Related Options
 ~~~~~~~~~~~~~~~
+
+.. qpdf:option:: --user-password=user-password
+
+   .. help: specify user password
+
+      Set the user password of the encrypted file.
+
+   Set the user password of the encrypted file. Conforming readers
+   apply security restrictions to files opened with the user password.
+
+.. qpdf:option:: --owner-password=owner-password
+
+   .. help: specify owner password
+
+      Set the owner password of the encrypted file.
+
+   Set the owner password of the encrypted file. Conforming readers
+   apply allow security restrictions to be changed or overridden when
+   files are opened with the owner password.
+
+.. qpdf:option:: --bits={48|128|256}
+
+   .. help: specify encryption key length
+
+      Specify the encryption key length. For best security, always use
+      a key length of 256.
+
+   Set the key length for encrypted files. You should always use
+   ``--bits=256`` unless you have a strong reason to create a file
+   with weaker encryption.
 
 .. qpdf:option:: --accessibility=[y|n]
 
@@ -2125,7 +2430,7 @@ Related Options
    created in this way are insecure since they can be opened without a
    password, and restrictions will not be enforced. Users would
    ordinarily never want to create such files. If you are using qpdf
-   to intentionally created strange files for testing (a valid use of
+   to intentionally create strange files for testing (a valid use of
    qpdf!), this option allows you to create such insecure files. This
    option is only available with 256-bit encryption.
 
@@ -2168,11 +2473,23 @@ Page Selection
 
    Use the --pages option to select pages from multiple files. Usage:
 
+   qpdf in.pdf --pages --file=input-file \
+       [--range=page-range] [--password=password] [...] -- out.pdf
+
+   OR
+
    qpdf in.pdf --pages input-file [--password=password] [page-range] \
        [...] -- out.pdf
 
    Between --pages and the -- that terminates pages option, repeat
    the following:
+
+   --file=filename [--range=page-range] [--password=password] [options]
+
+   For compatibility, the file and range can be specified
+   positionally. qpdf versions prior to 11.9.0
+   require --password=password to immediately follow the filename. In
+   the older syntax, repeat the following:
 
    filename [--password=password] [page-range]
 
@@ -2192,6 +2509,8 @@ Page Selection
 
    Use --collate=n to cause pages to be collated in groups of n pages
    (default 1) instead of concatenating the input.
+   Use --collate=i,j,k,... to take i from the first, then j from the
+   second, then k from the third, then i from the first, etc.
 
    Examples:
 
@@ -2200,7 +2519,7 @@ Page Selection
      information from in.pdf is retained. Note the use of "." to refer
      to in.pdf.
 
-     qpdf in.pdf --pages . a.pdf b.pdf:even -- out.pdf
+     qpdf in.pdf --pages . a.pdf b.pdf 1-z:even -- out.pdf
 
    - Take all the pages from a.pdf, all the pages from b.pdf in
      reverse, and only pages 3 and 6 from c.pdf and write the result
@@ -2214,14 +2533,29 @@ Page Selection
 split and merge PDF files by selecting pages from one or more input
 files.
 
-Usage: :samp:`qpdf {in.pdf} --pages input-file [--password={password}] [{page-range}] [...] -- {out.pdf}`
+::
 
-Between ``--pages`` and the ``--`` that terminates pages option,
-repeat the following:
+    qpdf primary-input.pdf \
+      --file=input.pdf \
+      [--range=page-range] \
+      [--password=password] \
+      [...] \
+      -- output.pdf
 
-:samp:`{filename} [--password={password}] [{page-range}]`
+OR
+
+::
+
+    qpdf primary-input.pdf \
+      input.pdf [--password=password] [page-range] \
+      [...] -- output.pdf
 
 Notes:
+  - The first form, with :qpdf:ref:`--file` and :qpdf:ref:`--range`,
+    was introduced in qpdf 11.9.0. In this form, the
+    :qpdf:ref:`--range` and :qpdf:ref:`--password` options apply to
+    the most recently specified :qpdf:ref:`--file` option.
+
   - The password option is needed only for password-protected files.
     If you specify the same file more than once, you only need to supply
     the password the first time.
@@ -2240,9 +2574,13 @@ Notes:
 See :ref:`page-ranges` for help on specifying a page range.
 
 Use :samp:`--collate={n}` to cause pages to be collated in groups of
-:samp:`{n}` pages (default 1) instead of concatenating the input. Note
-that the :qpdf:ref:`--collate` appears outside of ``--pages ... --``
-(before ``--pages`` or after ``--``). Pages are pulled from each
+:samp:`{n}` pages (default 1) instead of concatenating the input. Use
+:samp:`--collate={i},{j},{k},...` to take :samp:`{i}` from the first,
+then :samp:`{j}` from the second, then :samp:`{k}` from the third,
+then :samp:`{i}` from the first, etc.
+
+Note that the :qpdf:ref:`--collate` appears outside of ``--pages ...
+--`` (before ``--pages`` or after ``--``). Pages are pulled from each
 document in turn. When a document is out of pages, it is skipped. See
 examples below.
 
@@ -2256,8 +2594,7 @@ Examples
 
   ::
 
-     qpdf in.pdf --pages . a.pdf b.pdf:even -- out.pdf
-
+     qpdf in.pdf --pages . a.pdf b.pdf 1-z:even -- out.pdf
 
 - Take all the pages from :file:`a.pdf`, all the pages from
   :file:`b.pdf` in reverse, and only pages 3 and 6 from :file:`c.pdf`
@@ -2267,7 +2604,9 @@ Examples
 
   ::
 
-     qpdf --empty --pages a.pdf b.pdf --password=x z-1 c.pdf 3,6
+     qpdf --empty --pages --file=a.pdf \
+       --file=b.pdf --password=x --range=z-1 \
+       --file=c.pdf --range=3,6 -- out.pdf
 
 - Scan a document with double-sided printing by scanning the fronts
   into :file:`odd.pdf` and the backs into :file:`even.pdf`. Collate
@@ -2280,6 +2619,8 @@ Examples
      qpdf --collate odd.pdf --pages . even.pdf -- all.pdf
        OR
      qpdf --collate --empty --pages odd.pdf even.pdf -- all.pdf
+       OR
+     qpdf --collate --empty --pages --file=odd.pdf --file=even.pdf -- all.pdf
 
 - When collating, any number of files and page ranges can be
   specified. If any file has fewer pages, that file is just skipped
@@ -2337,6 +2678,34 @@ Examples
   - b.pdf page 4
 
   - a.pdf page 5
+
+- You can specify a multiple numeric parameters to :qpdf:ref:`--collate`. With
+  :samp:`--collate={i,j,k}`, pull groups of :samp:`{i}` pages from the
+  first file, then :samp:`{j}` from the second, then :samp:`{k}` from
+  the third, repeating. The number of parameters must equal the number
+  of groups. For example, if you ran
+
+  ::
+
+     qpdf --collate=2,1,3 --empty --pages a.pdf 1-5 b.pdf 6-4 c.pdf r1-r4 -- out.pdf
+
+  you would get the following pages in this order:
+
+  - a.pdf pages 1 and 2
+
+  - b.pdf page 6
+
+  - c.pdf last three pages in reverse order
+
+  - a.pdf pages 3 and 4
+
+  - b.pdf page 5
+
+  - c.pdf fourth to last page
+
+  - a.pdf page 5
+
+  - b.pdf page 4
 
 - Take pages 1 through 5 from :file:`file1.pdf` and pages 11 through
   15 in reverse from :file:`file2.pdf`, taking document-level metadata
@@ -2437,7 +2806,7 @@ Overlay and Underlay
    the destination page and may obscure the page. Underlaid pages are
    drawn below the destination page. Usage:
 
-   {--overlay|--underlay} file
+   {--overlay|--underlay} [--file=]file
          [--password=password]
          [--to=page-range]
          [--from=[page-range]]
@@ -2453,6 +2822,9 @@ Overlay and Underlay
    ignored. You can also give a page range with --repeat to cause
    those pages to be repeated after the original pages are exhausted.
 
+   This options are repeatable. Pages will be stacked in order of
+   appearance: first underlays, then the original page, then overlays.
+
    Run qpdf --help=page-ranges for help with page ranges.
 
 You can use :command:`qpdf` to overlay or underlay pages from other
@@ -2461,7 +2833,7 @@ as follows:
 
 ::
 
-   {--overlay|--underlay} file [options] --
+   {--overlay|--underlay} [--file=]file [options] --
 
 Overlay and underlay options are processed late, so they can be
 combined with other options like merging and will apply to the final
@@ -2469,8 +2841,12 @@ output. The ``--overlay`` and ``--underlay`` options work the same
 way, except underlay pages are drawn underneath the page to which they
 are applied, possibly obscured by the original page, and overlay files
 are drawn on top of the page to which they are applied, possibly
-obscuring the page. You can combine overlay and underlay, but you can
-only specify each option at most one time.
+obscuring the page. The ability to specify the file using the
+:qpdf:ref:`--file` option was added in qpdf 11.9.0. You can combine
+overlay and underlay. Starting in qpdf 11.9.0, you can specify these
+options multiple times. The final page will be a stack containing the
+underlays in order of appearance, then the original page, then the
+overlays in order of appearance.
 
 The default behavior of overlay and underlay is that pages are taken
 from the overlay/underlay file in sequence and applied to
@@ -2508,9 +2884,6 @@ they are exhausted, after which any pages specified with
 :qpdf:ref:`--repeat` are used. If you are using the
 :qpdf:ref:`--repeat` option, you can use ``--from=`` to provide an
 empty set of "from" pages.
-
-This Can be left empty by omitting
-:samp:`{page-range}` 
 
 .. qpdf:option:: --repeat=page-range
 
@@ -2885,7 +3258,7 @@ Related Options
 
    .. code-block:: bash
 
-      if [ qpdf --requires-password file.pdf ]; then
+      if qpdf --requires-password file.pdf; then
           # prompt for password
       fi
 
@@ -3108,7 +3481,11 @@ Related Options
    :qpdf:ref:`--verbose`, additional information, including preferred
    file name, description, dates, and more are also displayed. The key
    is usually but not always equal to the file name and is needed by
-   some of the other options. See also :ref:`attachments`.
+   some of the other options. See also :ref:`attachments`. Note that
+   this option displays dates in PDF timestamp syntax. When attachment
+   information is included in json output in the ``"attachments"`` key
+   (see :qpdf:ref:`--json`), dates are shown (just within that object)
+   in ISO-8601 format.
 
 .. qpdf:option:: --show-attachment=key
 
@@ -3145,20 +3522,30 @@ Related Options
 
       Generate a JSON representation of the file. This is described in
       depth in the JSON section of the manual. "version" may be a
-      specific version or "latest". Run qpdf --json-help for a
-      description of the generated JSON object.
+      specific version or "latest" (the default). Run qpdf --json-help
+      for a description of the generated JSON object.
 
    Generate a JSON representation of the file. This is described in
    depth in :ref:`json`. The version parameter can be used to specify
-   which version of the qpdf JSON format should be output. The only
-   supported value is ``1``, but it's possible that a new JSON output
-   version will be added in a future version. You can also specify
-   ``latest`` to use the latest JSON version. For backward
-   compatibility, the default value is ``1``. Use the
+   which version of the qpdf JSON format should be output. The version
+   number be a number or ``latest``. The default is ``latest``. As of
+   qpdf 11, the latest version is ``2``. If you have code that reads
+   qpdf JSON output, you can tell what version of the JSON output you
+   have from the ``"version"`` key in the output. Use the
    :qpdf:ref:`--json-help` option to get a description of the JSON
    object.
 
-.. qpdf:option:: --json-help
+   Starting with qpdf 11, when this option is specified, an output
+   file is optional (for backward compatibility) and defaults to
+   standard output. You may specify an output file to write the JSON
+   to a file rather than standard output. (Example: ``qpdf --json
+   in.pdf out.json``)
+
+   Stream data is only included if :qpdf:ref:`--json-output` is
+   specified or if a value other than ``none`` is passed to
+   :qpdf:ref:`--json-stream-data`.
+
+.. qpdf:option:: --json-help[=version]
 
    .. help: show format of JSON output
 
@@ -3166,12 +3553,13 @@ Related Options
       output a JSON object with the same keys and with values
       containing descriptive text.
 
-   Describe the format of the JSON output by writing to standard
-   output a JSON object with the same structure with the same keys as
+   Describe the format of the corresponding version of JSON output by
+   writing to standard output a JSON object with the same structure as
    the JSON generated by qpdf. In the output written by
    ``--json-help``, each key's value is a description of the key. The
    specific contract guaranteed by qpdf in its JSON representation is
-   explained in more detail in the :ref:`json`.
+   explained in more detail in the :ref:`json`. The default version of
+   help is version ``2``, as with the :qpdf:ref:`--json` flag.
 
 .. qpdf:option:: --json-key=key
 
@@ -3179,12 +3567,16 @@ Related Options
 
       This option is repeatable. If given, only the specified
       top-level keys will be included in the JSON output. Otherwise,
-      all keys will be included.
+      all keys will be included. With --json-output, when not given,
+      only the "qpdf" key will appear in the output.
 
    This option is repeatable. If given, only the specified top-level
    keys will be included in the JSON output. Otherwise, all keys will
-   be included. ``version`` and ``parameters`` will always appear in
-   the output.
+   be included. If not given, all keys will be included, unless
+   :qpdf:ref:`--json-output` was specified, in which case, only the
+   ``"qpdf"`` key will be included by default. If
+   :qpdf:ref:`--json-output` was not given, the ``version`` and
+   ``parameters`` keys will always appear in the output.
 
 .. qpdf:option:: --json-object={trailer|obj[,gen]}
 
@@ -3194,20 +3586,108 @@ Related Options
       be shown in the "objects" key of the JSON output. Otherwise, all
       objects will be shown.
 
-   This option is repeatable. If given, only specified objects will
-   be shown in the "``objects``" key of the JSON output. Otherwise, all
-   objects will be shown.
+   This option is repeatable. If given, only specified objects will be
+   shown in the objects dictionary in the JSON output. Otherwise, all
+   objects will be shown. See :ref:`json` for details about the qpdf
+   JSON format.
 
-.. qpdf:option:: --job-json-help
+.. qpdf:option:: --json-stream-data={none|inline|file}
 
-   .. help: show format of job JSON
+   .. help: how to handle streams in json output
 
-      Describe the format of the QPDFJob JSON input used by
-      --job-json-file.
+      When used with --json, this option controls whether streams in
+      json output should be omitted, written inline (base64-encoded)
+      or written to a file. If "file" is chosen, the file will be the
+      name of the output file appended with -nnn where nnn is the
+      object number. The prefix can be overridden with
+      --json-stream-prefix. The default is "none", except
+      when --json-output is specified, in which case the default is
+      "inline".
 
-   Describe the format of the QPDFJob JSON input used by
-   :qpdf:ref:`--job-json-file`. For more information about QPDFJob,
-   see :ref:`qpdf-job`.
+   When used with :qpdf:ref:`--json`, this option controls
+   whether streams in JSON output should be omitted, written inline
+   (base64-encoded) or written to a file. If ``file`` is chosen, the
+   file will be the name of the output file appended with
+   :samp:`-{nnn}` where :samp:`{nnn}` is the object number. The stream
+   data file prefix can be overridden with
+   :qpdf:ref:`--json-stream-prefix`. The default value is ``none``,
+   except when :qpdf:ref:`--json-output` is specified, in which case
+   the default is ``inline``.
+
+.. qpdf:option:: --json-stream-prefix=file-prefix
+
+   .. help: prefix for json stream data files
+
+      When used with --json-stream-data=file, --json-stream-data=file-prefix
+      sets the prefix for stream data files, overriding the default,
+      which is to use the output file name. Whatever is given here
+      will be appended with -nnn to create the name of the file that
+      will contain the data for the stream stream in object nnn.
+
+   When used with ``--json-stream-data=file``,
+   ``--json-stream-data=file-prefix`` sets the prefix for stream data
+   files, overriding the default, which is to use the output file
+   name. Whatever is given here will be appended with :samp:`-{nnn}`
+   to create the name of the file that will contain the data for the
+   stream stream in object :samp:`{nnn}`.
+
+.. qpdf:option:: --json-output[=version]
+
+   .. help: apply defaults for JSON serialization
+
+      Implies --json=version. Changes default values for certain
+      options so that the JSON output written is the most faithful
+      representation of the original PDF and contains no additional
+      JSON keys. See also --json-stream-data, --json-stream-prefix,
+      and --decode-level.
+
+   Implies :qpdf:ref:`--json` at the specified version. This option
+   changes several default values, all of which can be overridden by
+   specifying the stated option:
+
+   - The default value for :qpdf:ref:`--json-stream-data` changes from
+     ``none`` to ``inline``.
+
+   - The default value for :qpdf:ref:`--decode-level` changes from
+     ``generalized`` to ``none``.
+
+   - By default, only the ``"qpdf"`` key is included in the JSON
+     output, but you can add additional keys with
+     :qpdf:ref:`--json-key`.
+
+   - The ``"version"`` and ``"parameters"`` keys will be excluded from
+     the JSON output.
+
+   If you want to look at the contents of streams easily as you would
+   in QDF mode (see :ref:`qdf`), you can use
+   ``--decode-level=generalized`` and ``--json-stream-data=file`` for
+   a convenient way to do that.
+
+.. qpdf:option:: --json-input
+
+   .. help: input file is qpdf JSON
+
+      Treat the input file as a JSON file in qpdf JSON format. See the
+      "qpdf JSON Format" section of the manual for information about
+      how to use this option.
+
+   Treat the input file as a JSON file in qpdf JSON format. The input
+   file must be complete and include all stream data. The JSON version
+   must be at least 2. All top-level keys are ignored except for
+   ``"qpdf"``. For information about converting between PDF and JSON,
+   please see :ref:`json`.
+
+.. qpdf:option:: --update-from-json=qpdf-json-file
+
+   .. help: update a PDF from qpdf JSON
+
+      Update a PDF file from a JSON file. Please see the "qpdf JSON"
+      chapter of the manual for information about how to use this
+      option.
+
+   This option updates a PDF file from the specified qpdf JSON file.
+   For a information about how to use this option, please see
+   :ref:`json`.
 
 .. _test-options:
 
@@ -3243,20 +3723,21 @@ random element, as well as the interaction of stream length encoding
 with dictionary key sorting.
 
 It is possible to get idempotent behavior by using the
-:qpdf:ref:`--static-id` or :qpdf:ref:`--deterministic-id` option with
-qpdf and running it *three* times so that you are processing the
-output of qpdf on its own previous output. For example, in this
-sequence of commands:
+:qpdf:ref:`--deterministic-id` (or, for testing only,
+:qpdf:ref:`--static-id`) option with qpdf and running it *three* times
+so that you are processing the output of qpdf on its own previous
+output. For example, in this sequence of commands:
 
 ::
 
    qpdf any-file.pdf 1.pdf
-   qpdf --static-id 1.pdf 2.pdf
-   qpdf --static-id 2.pdf 3.pdf
+   qpdf --deterministic-id 1.pdf 2.pdf
+   qpdf --deterministic-id 2.pdf 3.pdf
 
 the files :file:`2.pdf` and :file:`3.pdf` should be *byte-for-byte*
 identical. The qpdf test suite relies on this behavior. See also
-:qpdf:ref:`--static-aes-iv`.
+:qpdf:ref:`--static-aes-iv`, which should also be used only for
+testing.
 
 Related Options
 ~~~~~~~~~~~~~~~
@@ -3310,6 +3791,29 @@ Related Options
    is discarded. This option enables it to be captured, allowing
    inspection of the file before values calculated in pass 1 are
    inserted into the file for pass 2.
+
+.. qpdf:option:: --test-json-schema
+
+   .. help: test generated json against schema
+
+      This is used by qpdf's test suite to check consistency between
+      the output of qpdf --json and the output of qpdf --json-help.
+
+   This is used by qpdf's test suite to check consistency between the
+   output of ``qpdf --json`` and the output of ``qpdf --json-help``.
+   This option causes an extra copy of the generated JSON to appear in
+   memory and is therefore unsuitable for use with large files. This
+   is why it's also not on by default.
+
+.. qpdf:option:: --report-memory-usage
+
+   .. help: best effort report of memory usage
+
+      This is used by qpdf's performance test suite to report the
+      maximum amount of memory used in supported environments.
+
+   This is used by qpdf's performance test suite to report the maximum
+   amount of memory used in supported environments.
 
 .. _unicode-passwords:
 

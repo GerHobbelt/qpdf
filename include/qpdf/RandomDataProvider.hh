@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2021 Jay Berkenbilt
+// Copyright (c) 2005-2024 Jay Berkenbilt
 //
 // This file is part of qpdf.
 //
@@ -23,20 +23,17 @@
 #define RANDOMDATAPROVIDER_HH
 
 #include <qpdf/DLL.h>
-#include <string.h> // for size_t
+#include <cstring> // for size_t
 
 class QPDF_DLL_CLASS RandomDataProvider
 {
   public:
-    virtual ~RandomDataProvider()
-    {
-    }
+    virtual ~RandomDataProvider() = default;
     virtual void provideRandomData(unsigned char* data, size_t len) = 0;
 
   protected:
-    RandomDataProvider()
-    {
-    }
+    QPDF_DLL_PRIVATE
+    RandomDataProvider() = default;
 
   private:
     RandomDataProvider(RandomDataProvider const&) = delete;

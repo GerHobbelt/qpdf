@@ -1,47 +1,45 @@
 #include <qpdf/BitStream.hh>
 #include <qpdf/BitWriter.hh>
 #include <qpdf/Pl_Buffer.hh>
-#include <qpdf/QUtil.hh>
 #include <qpdf/QIntC.hh>
+#include <qpdf/QUtil.hh>
+#include <cstdlib>
 #include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
 
-// See comments in bits.cc
+// See comments in bits_functions.hh
 #define BITS_TESTING 1
 #define BITS_READ 1
 #define BITS_WRITE 1
-#include "../libqpdf/bits.icc"
+#include <qpdf/bits_functions.hh>
 
 static void
-print_values(long long byte_offset, size_t bit_offset,
-	     size_t bits_available)
+print_values(long long byte_offset, size_t bit_offset, size_t bits_available)
 {
-    std::cout << "byte offset = " << byte_offset << ", "
-	      << "bit offset = " << bit_offset << ", "
-	      << "bits available = " << bits_available << std::endl;
+    std::cout << "byte offset = " << byte_offset << ", " << "bit offset = " << bit_offset << ", "
+              << "bits available = " << bits_available << std::endl;
 }
 
 static void
-test_read_bits(unsigned char const* buf,
-	       unsigned char const*& p, size_t& bit_offset,
-	       size_t& bits_available, size_t bits_wanted)
+test_read_bits(
+    unsigned char const* buf,
+    unsigned char const*& p,
+    size_t& bit_offset,
+    size_t& bits_available,
+    size_t bits_wanted)
 {
-    unsigned long result =
-	QIntC::to_ulong(read_bits(p, bit_offset, bits_available, bits_wanted));
+    unsigned long result = QIntC::to_ulong(read_bits(p, bit_offset, bits_available, bits_wanted));
 
-    std::cout << "bits read: " << bits_wanted << ", result = " << result
-	      << std::endl;
+    std::cout << "bits read: " << bits_wanted << ", result = " << result << std::endl;
     print_values(p - buf, bit_offset, bits_available);
 }
 
 static void
-test_write_bits(unsigned char& ch, size_t& bit_offset, unsigned long val,
-		size_t bits, Pl_Buffer* bp)
+test_write_bits(
+    unsigned char& ch, size_t& bit_offset, unsigned long val, size_t bits, Pl_Buffer* bp)
 {
     write_bits(ch, bit_offset, val, bits, bp);
-    std::cout << "ch = " << QUtil::uint_to_string_base(ch, 16, 2)
-              << ", bit_offset = " << bit_offset << std::endl;
+    std::cout << "ch = " << QUtil::uint_to_string_base(ch, 16, 2) << ", bit_offset = " << bit_offset
+              << std::endl;
 }
 
 static void
@@ -51,10 +49,8 @@ print_buffer(Pl_Buffer* bp)
     Buffer* b = bp->getBuffer();
     unsigned char const* p = b->getBuffer();
     size_t l = b->getSize();
-    for (unsigned long i = 0; i < l; ++i)
-    {
-        std::cout << QUtil::uint_to_string_base(p[i], 16, 2)
-                  << ((i == l - 1) ? "\n" : " ");
+    for (unsigned long i = 0; i < l; ++i) {
+        std::cout << QUtil::uint_to_string_base(p[i], 16, 2) << ((i == l - 1) ? "\n" : " ");
     }
     std::cout << std::endl;
     delete b;
@@ -68,9 +64,7 @@ test()
 
     // Read tests
 
-    static unsigned char const buf[] = {
-	0xF5, 0x15, 0x65, 0x79, 0x12, 0x89, 0x75, 0x4B
-    };
+    static unsigned char const buf[] = {0xF5, 0x15, 0x65, 0x79, 0x12, 0x89, 0x75, 0x4B};
 
     unsigned char const* p = buf;
     size_t bit_offset = 7;
@@ -89,14 +83,11 @@ test()
     test_read_bits(buf, p, bit_offset, bits_available, 0);
     test_read_bits(buf, p, bit_offset, bits_available, 25);
 
-    try
-    {
-	test_read_bits(buf, p, bit_offset, bits_available, 4);
-    }
-    catch (std::exception& e)
-    {
-	std::cout << "exception: " << e.what() << std::endl;
-	print_values(p - buf, bit_offset, bits_available);
+    try {
+        test_read_bits(buf, p, bit_offset, bits_available, 4);
+    } catch (std::exception& e) {
+        std::cout << "exception: " << e.what() << std::endl;
+        print_values(p - buf, bit_offset, bits_available);
     }
 
     test_read_bits(buf, p, bit_offset, bits_available, 3);
@@ -141,7 +132,7 @@ test()
 
     unsigned char ch = 0;
     bit_offset = 7;
-    Pl_Buffer* bp = new Pl_Buffer("buffer");
+    auto* bp = new Pl_Buffer("buffer");
 
     test_write_bits(ch, bit_offset, 30UL, 5, bp);
     test_write_bits(ch, bit_offset, 10UL, 4, bp);
@@ -179,16 +170,14 @@ test()
     delete bp;
 }
 
-int main()
+int
+main()
 {
-    try
-    {
-	test();
-    }
-    catch (std::exception& e)
-    {
-	std::cout << "unexpected exception: " << e.what() << std::endl;
-	exit(2);
+    try {
+        test();
+    } catch (std::exception& e) {
+        std::cout << "unexpected exception: " << e.what() << std::endl;
+        exit(2);
     }
     std::cout << "done" << std::endl;
     return 0;

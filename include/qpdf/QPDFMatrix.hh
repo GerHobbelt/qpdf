@@ -1,33 +1,29 @@
-// Copyright (c) 2005-2021 Jay Berkenbilt
+// Copyright (c) 2005-2024 Jay Berkenbilt
 //
 // This file is part of qpdf.
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
 //
 //   http://www.apache.org/licenses/LICENSE-2.0
 //
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Unless required by applicable law or agreed to in writing, software distributed under the License
+// is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+// or implied. See the License for the specific language governing permissions and limitations under
+// the License.
 //
-// Versions of qpdf prior to version 7 were released under the terms
-// of version 2.0 of the Artistic License. At your option, you may
-// continue to consider qpdf to be licensed under those terms. Please
-// see the manual for additional information.
+// Versions of qpdf prior to version 7 were released under the terms of version 2.0 of the Artistic
+// License. At your option, you may continue to consider qpdf to be licensed under those terms.
+// Please see the manual for additional information.
 
 #ifndef QPDFMATRIX_HH
 #define QPDFMATRIX_HH
 
-#include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/DLL.h>
+#include <qpdf/QPDFObjectHandle.hh>
 #include <string>
 
-// This class represents a PDF transformation matrix using a tuple
-// such that
+// This class represents a PDF transformation matrix using a tuple such that
 //
 //                      ┌       ┐
 //                      │ a b 0 │
@@ -41,13 +37,11 @@ class QPDFMatrix
     QPDF_DLL
     QPDFMatrix();
     QPDF_DLL
-    QPDFMatrix(double a, double b, double c,
-               double d, double e, double f);
+    QPDFMatrix(double a, double b, double c, double d, double e, double f);
     QPDF_DLL
     QPDFMatrix(QPDFObjectHandle::Matrix const&);
 
-    // Returns the six values separated by spaces as real numbers with
-    // trimmed zeroes.
+    // Returns the six values separated by spaces as real numbers with trimmed zeroes.
     QPDF_DLL
     std::string unparse() const;
 
@@ -75,29 +69,20 @@ class QPDFMatrix
     // and take the first and second rows of the result as xp and yp.
     QPDF_DLL
     void transform(double x, double y, double& xp, double& yp) const;
-    // ABI: delete non-const version
-    QPDF_DLL
-    void transform(double x, double y, double& xp, double& yp);
 
-    // Transform a rectangle by creating a new rectangle that tightly
-    // bounds the polygon resulting from transforming the four
-    // corners.
+    // Transform a rectangle by creating a new rectangle that tightly bounds the polygon resulting
+    // from transforming the four corners.
     QPDF_DLL
-    QPDFObjectHandle::Rectangle transformRectangle(
-        QPDFObjectHandle::Rectangle r) const;
-    // ABI: delete non-const version
-    QPDF_DLL
-    QPDFObjectHandle::Rectangle transformRectangle(
-        QPDFObjectHandle::Rectangle r);
+    QPDFObjectHandle::Rectangle transformRectangle(QPDFObjectHandle::Rectangle r) const;
 
-    // operator== tests for exact equality, not considering deltas for
-    // floating point.
+    // operator== tests for exact equality, not considering deltas for floating point.
     QPDF_DLL
     bool operator==(QPDFMatrix const& rhs) const;
     QPDF_DLL
-    bool operator!=(QPDFMatrix const& rhs) const
+    bool
+    operator!=(QPDFMatrix const& rhs) const
     {
-        return ! operator==(rhs);
+        return !operator==(rhs);
     }
 
     double a;

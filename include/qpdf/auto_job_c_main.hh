@@ -3,6 +3,8 @@
 // Edits will be automatically overwritten if the build is
 // run in maintainer mode.
 //
+// clang-format off
+//
 QPDF_DLL Config* allowWeakCrypto();
 QPDF_DLL Config* check();
 QPDF_DLL Config* checkLinearization();
@@ -15,6 +17,7 @@ QPDF_DLL Config* flattenRotation();
 QPDF_DLL Config* generateAppearances();
 QPDF_DLL Config* ignoreXrefStreams();
 QPDF_DLL Config* isEncrypted();
+QPDF_DLL Config* jsonInput();
 QPDF_DLL Config* keepInlineImages();
 QPDF_DLL Config* linearize();
 QPDF_DLL Config* listAttachments();
@@ -30,7 +33,9 @@ QPDF_DLL Config* qdf();
 QPDF_DLL Config* rawStreamData();
 QPDF_DLL Config* recompressFlate();
 QPDF_DLL Config* removePageLabels();
+QPDF_DLL Config* reportMemoryUsage();
 QPDF_DLL Config* requiresPassword();
+QPDF_DLL Config* removeRestrictions();
 QPDF_DLL Config* showEncryption();
 QPDF_DLL Config* showEncryptionKey();
 QPDF_DLL Config* showLinearization();
@@ -41,6 +46,7 @@ QPDF_DLL Config* staticAesIv();
 QPDF_DLL Config* staticId();
 QPDF_DLL Config* suppressPasswordRecovery();
 QPDF_DLL Config* suppressRecovery();
+QPDF_DLL Config* testJsonSchema();
 QPDF_DLL Config* verbose();
 QPDF_DLL Config* warningExit0();
 QPDF_DLL Config* withImages();
@@ -63,6 +69,8 @@ QPDF_DLL Config* removeAttachment(std::string const& parameter);
 QPDF_DLL Config* rotate(std::string const& parameter);
 QPDF_DLL Config* showAttachment(std::string const& parameter);
 QPDF_DLL Config* showObject(std::string const& parameter);
+QPDF_DLL Config* jsonStreamPrefix(std::string const& parameter);
+QPDF_DLL Config* updateFromJson(std::string const& parameter);
 QPDF_DLL Config* collate(std::string const& parameter);
 QPDF_DLL Config* collate();
 QPDF_DLL Config* splitPages(std::string const& parameter);
@@ -71,6 +79,7 @@ QPDF_DLL Config* compressStreams(std::string const& parameter);
 QPDF_DLL Config* decodeLevel(std::string const& parameter);
 QPDF_DLL Config* flattenAnnotations(std::string const& parameter);
 QPDF_DLL Config* jsonKey(std::string const& parameter);
+QPDF_DLL Config* jsonStreamData(std::string const& parameter);
 QPDF_DLL Config* keepFilesOpen(std::string const& parameter);
 QPDF_DLL Config* normalizeContent(std::string const& parameter);
 QPDF_DLL Config* objectStreams(std::string const& parameter);
@@ -79,3 +88,5 @@ QPDF_DLL Config* removeUnreferencedResources(std::string const& parameter);
 QPDF_DLL Config* streamData(std::string const& parameter);
 QPDF_DLL Config* json(std::string const& parameter);
 QPDF_DLL Config* json();
+QPDF_DLL Config* jsonOutput(std::string const& parameter);
+QPDF_DLL Config* jsonOutput();

@@ -1,4 +1,5 @@
 #include <qpdf/QPDFCrypto_native.hh>
+
 #include <qpdf/QUtil.hh>
 
 #ifdef USE_INSECURE_RANDOM
@@ -6,24 +7,24 @@
 #endif
 #include <qpdf/SecureRandomDataProvider.hh>
 
-static RandomDataProvider* getRandomProvider()
+static RandomDataProvider*
+getRandomProvider()
 {
 #ifdef USE_INSECURE_RANDOM
     static RandomDataProvider* insecure_random_data_provider =
         InsecureRandomDataProvider::getInstance();
 #else
-    static RandomDataProvider* insecure_random_data_provider = 0;
+    static RandomDataProvider* insecure_random_data_provider = nullptr;
 #endif
     static RandomDataProvider* secure_random_data_provider =
         SecureRandomDataProvider::getInstance();
 
-    static RandomDataProvider* provider = (
-        secure_random_data_provider ? secure_random_data_provider
-        : insecure_random_data_provider ? insecure_random_data_provider
-        : 0);
+    static RandomDataProvider* provider =
+        (secure_random_data_provider         ? secure_random_data_provider
+             : insecure_random_data_provider ? insecure_random_data_provider
+                                             : nullptr);
 
-    if (provider == 0)
-    {
+    if (provider == nullptr) {
         throw std::logic_error("QPDFCrypto_native has no random data provider");
     }
 
@@ -67,8 +68,7 @@ QPDFCrypto_native::RC4_init(unsigned char const* key_data, int key_len)
 }
 
 void
-QPDFCrypto_native::RC4_process(unsigned char* in_data, size_t len,
-                               unsigned char* out_data)
+QPDFCrypto_native::RC4_process(unsigned char const* in_data, size_t len, unsigned char* out_data)
 {
     this->rc4->process(in_data, len, out_data);
 }
@@ -104,17 +104,19 @@ QPDFCrypto_native::SHA2_digest()
 
 void
 QPDFCrypto_native::rijndael_init(
-    bool encrypt, unsigned char const* key_data, size_t key_len,
-    bool cbc_mode, unsigned char* cbc_block)
+    bool encrypt,
+    unsigned char const* key_data,
+    size_t key_len,
+    bool cbc_mode,
+    unsigned char* cbc_block)
 
 {
-    this->aes_pdf = std::make_shared<AES_PDF_native>(
-        encrypt, key_data, key_len, cbc_mode, cbc_block);
+    this->aes_pdf =
+        std::make_shared<AES_PDF_native>(encrypt, key_data, key_len, cbc_mode, cbc_block);
 }
 
 void
-QPDFCrypto_native::rijndael_process(unsigned char* in_data,
-                                    unsigned char* out_data)
+QPDFCrypto_native::rijndael_process(unsigned char* in_data, unsigned char* out_data)
 {
     this->aes_pdf->update(in_data, out_data);
 }

@@ -2,18 +2,16 @@
 #include <qpdf/Pl_StdioFile.hh>
 #include <qpdf/QUtil.hh>
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
-#include <stdlib.h>
 
-int main(int argc, char* argv[])
+int
+main(int argc, char* argv[])
 {
-    if (argc != 3)
-    {
-	std::cerr << "Usage: dct_uncompress infile outfile"
-                  << std::endl;
-	exit(2);
+    if (argc != 3) {
+        std::cerr << "Usage: dct_uncompress infile outfile" << std::endl;
+        exit(2);
     }
 
     char* infilename = argv[1];
@@ -25,17 +23,13 @@ int main(int argc, char* argv[])
     unsigned char buf[100];
     bool done = false;
     Pl_DCT dct("dct", &out);
-    while (! done)
-    {
-	size_t len = fread(buf, 1, sizeof(buf), infile);
-	if (len <= 0)
-	{
-	    done = true;
-	}
-	else
-	{
-	    dct.write(buf, len);
-	}
+    while (!done) {
+        size_t len = fread(buf, 1, sizeof(buf), infile);
+        if (len <= 0) {
+            done = true;
+        } else {
+            dct.write(buf, len);
+        }
     }
     dct.finish();
     fclose(infile);

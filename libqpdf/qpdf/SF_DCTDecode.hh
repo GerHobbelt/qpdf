@@ -1,33 +1,37 @@
-#include <qpdf/QPDFStreamFilter.hh>
 #include <qpdf/Pl_DCT.hh>
+#include <qpdf/QPDFStreamFilter.hh>
 #include <memory>
 
 #ifndef SF_DCTDECODE_HH
-#define SF_DCTDECODE_HH
+# define SF_DCTDECODE_HH
 
 class SF_DCTDecode: public QPDFStreamFilter
 {
   public:
     SF_DCTDecode() = default;
-    virtual ~SF_DCTDecode() = default;
+    ~SF_DCTDecode() override = default;
 
-    virtual Pipeline* getDecodePipeline(Pipeline* next) override
+    Pipeline*
+    getDecodePipeline(Pipeline* next) override
     {
         this->pipeline = std::make_shared<Pl_DCT>("DCT decode", next);
         return this->pipeline.get();
     }
 
-    static std::shared_ptr<QPDFStreamFilter> factory()
+    static std::shared_ptr<QPDFStreamFilter>
+    factory()
     {
         return std::make_shared<SF_DCTDecode>();
     }
 
-    virtual bool isSpecializedCompression() override
+    bool
+    isSpecializedCompression() override
     {
         return true;
     }
 
-    virtual bool isLossyCompression() override
+    bool
+    isLossyCompression() override
     {
         return true;
     }

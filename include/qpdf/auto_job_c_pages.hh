@@ -3,3 +3,8 @@
 // Edits will be automatically overwritten if the build is
 // run in maintainer mode.
 //
+// clang-format off
+//
+QPDF_DLL PagesConfig* file(std::string const& parameter);
+QPDF_DLL PagesConfig* range(std::string const& parameter);
+QPDF_DLL PagesConfig* password(std::string const& parameter);

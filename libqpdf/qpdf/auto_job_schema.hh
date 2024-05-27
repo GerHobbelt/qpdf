@@ -3,6 +3,7 @@ static constexpr char const* JOB_SCHEMA_DATA = R"({
   "password": "password for encrypted file",
   "passwordFile": "read password from a file",
   "empty": "use empty file as input",
+  "jsonInput": "input file is qpdf JSON",
   "outputFile": "output filename",
   "replaceInput": "overwrite input with output",
   "qdf": "enable viewing PDF code in a text editor",
@@ -27,9 +28,12 @@ static constexpr char const* JOB_SCHEMA_DATA = R"({
   "forceVersion": "set output PDF version",
   "progress": "show progress when writing",
   "splitPages": "write pages to separate files",
+  "jsonOutput": "apply defaults for JSON serialization",
+  "removeRestrictions": "remove security restrictions from input file",
   "encrypt": {
-    "userPassword": "user password",
-    "ownerPassword": "owner password",
+    "userPassword": "specify user password",
+    "ownerPassword": "specify owner password",
+    "Bits": null,
     "40bit": {
       "annotate": "restrict document annotation",
       "extract": "restrict text/graphic extraction",
@@ -84,11 +88,15 @@ static constexpr char const* JOB_SCHEMA_DATA = R"({
   "jsonObject": [
     "limit which objects are in JSON"
   ],
+  "jsonStreamData": "how to handle streams in json output",
+  "jsonStreamPrefix": "prefix for json stream data files",
+  "updateFromJson": "update a PDF from qpdf JSON",
   "allowWeakCrypto": "allow insecure cryptographic algorithms",
   "keepFilesOpen": "manage keeping multiple files open",
   "keepFilesOpenThreshold": "set threshold for keepFilesOpen",
   "noWarn": "suppress printing of warning messages",
   "verbose": "print additional information",
+  "testJsonSchema": "test generated json against schema",
   "ignoreXrefStreams": "use xref tables rather than streams",
   "passwordIsHexKey": "provide hex-encoded encryption key",
   "passwordMode": "tweak how qpdf encodes passwords",
@@ -111,7 +119,9 @@ static constexpr char const* JOB_SCHEMA_DATA = R"({
       "replace": "replace attachment with same key"
     }
   ],
-  "removeAttachment": "remove an embedded file",
+  "removeAttachment": [
+    "remove an embedded file"
+  ],
   "copyAttachmentsFrom": [
     {
       "file": "file to copy attachments from",
@@ -130,27 +140,35 @@ static constexpr char const* JOB_SCHEMA_DATA = R"({
   "optimizeImages": "use efficient compression for images",
   "pages": [
     {
-      "file": "source for for pages",
+      "file": "source for pages",
       "password": "password for encrypted file",
       "range": "page range"
     }
   ],
   "removePageLabels": "remove explicit page numbers",
+  "reportMemoryUsage": "best effort report of memory usage",
   "rotate": "rotate pages",
-  "overlay": {
-    "file": "source file for overlay",
-    "password": "password for encrypted file",
-    "from": "source pages for underlay/overlay",
-    "repeat": "overlay/underlay pages to repeat",
-    "to": "destination pages for underlay/overlay"
-  },
-  "underlay": {
-    "file": "source file for underlay",
-    "password": "password for encrypted file",
-    "from": "source pages for underlay/overlay",
-    "repeat": "overlay/underlay pages to repeat",
-    "to": "destination pages for underlay/overlay"
-  },
+  "setPageLabels": [
+    "number pages for the entire document"
+  ],
+  "overlay": [
+    {
+      "file": "source for pages",
+      "password": "password for encrypted file",
+      "from": "source pages for underlay/overlay",
+      "repeat": "overlay/underlay pages to repeat",
+      "to": "destination pages for underlay/overlay"
+    }
+  ],
+  "underlay": [
+    {
+      "file": "source for pages",
+      "password": "password for encrypted file",
+      "from": "source pages for underlay/overlay",
+      "repeat": "overlay/underlay pages to repeat",
+      "to": "destination pages for underlay/overlay"
+    }
+  ],
   "warningExit0": "exit 0 even with warnings",
   "jobJsonFile": "job JSON file",
   "preserveUnreferencedResources": "use removeUnreferencedResources=no",

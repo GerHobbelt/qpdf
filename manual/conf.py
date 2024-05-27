@@ -13,10 +13,14 @@ import sys
 sys.path.append(os.path.abspath("./_ext"))
 
 project = 'QPDF'
-copyright = '2005-2021, Jay Berkenbilt'
+copyright = '2005-2024, Jay Berkenbilt'
 author = 'Jay Berkenbilt'
-# make_dist and the CI build lexically find the release version from this file.
-release = '10.5.0'
+here = os.path.dirname(os.path.realpath(__file__))
+with open(f'{here}/../CMakeLists.txt') as f:
+    for line in f.readlines():
+        if line.strip().startswith('VERSION '):
+            release = line.replace('VERSION', '').strip()
+            break
 version = release
 extensions = [
     'sphinx_rtd_theme',
@@ -35,6 +39,7 @@ latex_elements = {
     'preamble': r'''
 \sphinxDUC{2264}{$\leq$}
 \sphinxDUC{2265}{$\geq$}
+\sphinxDUC{03C0}{$\pi$}
 ''',
 }
 highlight_language = 'none'

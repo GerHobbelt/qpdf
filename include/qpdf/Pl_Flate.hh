@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2021 Jay Berkenbilt
+// Copyright (c) 2005-2024 Jay Berkenbilt
 //
 // This file is part of qpdf.
 //
@@ -24,25 +24,28 @@
 
 #include <qpdf/Pipeline.hh>
 #include <functional>
+#include <memory>
 
-class Pl_Flate: public Pipeline
+class QPDF_DLL_CLASS Pl_Flate: public Pipeline
 {
   public:
     static unsigned int const def_bufsize = 65536;
-    static int compression_level;
 
     enum action_e { a_inflate, a_deflate };
 
     QPDF_DLL
-    Pl_Flate(char const* identifier, Pipeline* next,
-	     action_e action, unsigned int out_bufsize = def_bufsize);
+    Pl_Flate(
+        char const* identifier,
+        Pipeline* next,
+        action_e action,
+        unsigned int out_bufsize = def_bufsize);
     QPDF_DLL
-    virtual ~Pl_Flate();
+    ~Pl_Flate() override;
 
     QPDF_DLL
-    virtual void write(unsigned char* data, size_t len);
+    void write(unsigned char const* data, size_t len) override;
     QPDF_DLL
-    virtual void finish();
+    void finish() override;
 
     // Globally set compression level from 1 (fastest, least
     // compression) to 9 (slowest, most compression). Use -1 to set
@@ -57,11 +60,17 @@ class Pl_Flate: public Pipeline
     void setWarnCallback(std::function<void(char const*, int)> callback);
 
   private:
-    void handleData(unsigned char* data, size_t len, int flush);
+    QPDF_DLL_PRIVATE
+    void handleData(unsigned char const* data, size_t len, int flush);
+    QPDF_DLL_PRIVATE
     void checkError(char const* prefix, int error_code);
+    QPDF_DLL_PRIVATE
     void warn(char const*, int error_code);
 
-    class Members
+    QPDF_DLL_PRIVATE
+    static int compression_level;
+
+    class QPDF_DLL_PRIVATE Members
     {
         friend class Pl_Flate;
 
@@ -71,9 +80,9 @@ class Pl_Flate: public Pipeline
 
       private:
         Members(size_t out_bufsize, action_e action);
-        Members(Members const&);
+        Members(Members const&) = delete;
 
-        PointerHolder<unsigned char> outbuf;
+        std::shared_ptr<unsigned char> outbuf;
         size_t out_bufsize;
         action_e action;
         bool initialized;
@@ -81,7 +90,7 @@ class Pl_Flate: public Pipeline
         std::function<void(char const*, int)> callback;
     };
 
-    PointerHolder<Members> m;
+    std::shared_ptr<Members> m;
 };
 
 #endif // PL_FLATE_HH

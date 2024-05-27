@@ -6,14 +6,10 @@
 class Pl_ASCII85Decoder: public Pipeline
 {
   public:
-    QPDF_DLL
     Pl_ASCII85Decoder(char const* identifier, Pipeline* next);
-    QPDF_DLL
-    virtual ~Pl_ASCII85Decoder();
-    QPDF_DLL
-    virtual void write(unsigned char* buf, size_t len);
-    QPDF_DLL
-    virtual void finish();
+    ~Pl_ASCII85Decoder() override = default;
+    void write(unsigned char const* buf, size_t len) override;
+    void finish() override;
 
   private:
     void flush();

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2019-2021 Jay Berkenbilt and Kurt Pfeifle
+# Copyright (c) 2019-2024 Jay Berkenbilt and Kurt Pfeifle
 #
 # This script is used to build an 'AppImage' from GitHub sources of
 # QPDF (see https://appimage.org/). It is used in CI, but it also
@@ -21,7 +21,7 @@
 # into the 'CUSTOM_CONFIGURE' environment variable and exporting it
 # before running this script. For example:
 #
-#      export CUSTOM_CONFIGURE=" --enable-test-compare-images [--more-other-options]"
+#      export CUSTOM_CONFIGURE=" -DSOME_OTHER_OPTION=1 [...]"
 #
 # ATTENTION:
 #
@@ -82,31 +82,35 @@ appdir=$here/build/appdir
 rm -rf $here/build
 
 # Prepare build of QPDF from sources:
-./configure --prefix=/usr --enable-werror \
-            --enable-crypto-gnutls --disable-implicit-crypto \
-            --enable-show-failed-test-output \
-            --enable-html-doc --enable-pdf-doc "$CUSTOM_CONFIGURE"
+rm -rf build.appimage
+mkdir build.appimage
+cd build.appimage
+cmake -DWERROR=1 -DBUILD_DOC=1 -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_DOC_DIST=1 -DINSTALL_MANUAL=1 \
+      -DREQUIRE_CRYPTO_GNUTLS=1 -DUSE_IMPLICIT_CRYPTO=0 \
+      -DSHOW_FAILED_TEST_OUTPUT=1 -DBUILD_STATIC_LIBS=0 \
+      -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib' \
+      ${CUSTOM_CONFIGURE+"$CUSTOM_CONFIGURE"} ..
 
 # Build!
-make -j$(nproc)
+cmake --build . -j$(nproc)
 
 if [ "$SKIP_TESTS" = "" ]; then
     # Run built-in QPDF checks:
-    make -k check
+    ctest --verbose
 fi
 
 # Prepare AppDir which is the basis for the AppImage:
 mkdir -p $appdir
 
 # Install build result into AppDir:
-make install DESTDIR=$appdir; find $appdir
-make doc-dist DOC_DEST=appdir/usr/share/doc/qpdf
+for i in lib cli doc; do
+    DESTDIR=$appdir cmake --install . --prefix /usr --component $i
+done
+find $appdir
 
 # Change into build directory:
 cd $here/build
-
-# Don't bundle developer stuff
-rm -rf appdir/usr/include appdir/usr/lib/pkgconfig appdir/usr/lib/*.{a,la,so}
 
 # Copy icon which is needed for desktop integration into place:
 for width in 64 128 256 512; do
@@ -133,7 +137,7 @@ for i in appdir/usr/share/doc/qpdf; do
     cp $top/LICENSE.txt $i
     cp $top/Artistic-2.0 $i/Artistic-LICENSE.txt
     cp $top/ChangeLog $i/README-ChangeLog
-    cp $top/TODO $i/README-todo
+    cp $top/TODO.md $i/README-todo.md
 done
 
 # The following lines are experimental (for debugging; and to test
@@ -148,7 +152,12 @@ wget -c "https://github.com/probonopd/linuxdeployqt/releases/download/continuous
 chmod a+x linuxdeployqt*.AppImage
 
 # Set up a clean environment:
-unset QTDIR; unset QT_PLUGIN_PATH; unset LD_LIBRARY_PATH
+unset QTDIR; unset QT_PLUGIN_PATH
+
+# Since cmake strips runpath information for executables and we are
+# installing with DESTDIR, we need to set LD_LIBRARY_PATH or else ldd
+# will fail on the resulting executables
+export LD_LIBRARY_PATH=$(dirname $(find $appdir -type l -name 'libqpdf.so.*'))
 
 # Let 'linuxdeployqt' do its first stage of work:
 ./linuxdeployqt*.AppImage appdir/usr/share/applications/*.desktop -bundle-non-qt-libs

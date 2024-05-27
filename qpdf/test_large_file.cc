@@ -1,19 +1,20 @@
+#include <qpdf/assert_test.h>
+
 // NOTE: This test program doesn't do anything special to enable large
 // file support.  This is important since it verifies that programs
 // don't have to do anything special -- all the work is done
 // internally by the library as long as they don't do their own file
 // I/O.
 
+#include <qpdf/QIntC.hh>
 #include <qpdf/QPDF.hh>
+#include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QPDFPageDocumentHelper.hh>
 #include <qpdf/QPDFWriter.hh>
-#include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QUtil.hh>
-#include <qpdf/QIntC.hh>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
-#include <string.h>
-#include <stdlib.h>
-#include <assert.h>
 
 // Run "test_large_file write small a.pdf" to get a PDF file that you
 // can look at in a reader.
@@ -34,7 +35,7 @@
 // reading the large file then allows us to verify large file support
 // with confidence.
 
-static char const* whoami = 0;
+static char const* whoami = nullptr;
 
 // Height should be a multiple of 10
 static size_t const nstripes = 10;
@@ -46,50 +47,43 @@ static size_t const npages = 200;
 size_t stripesize = 0;
 size_t width = 0;
 size_t height = 0;
-static unsigned char* buf = 0;
+static unsigned char* buf = nullptr;
 
-static inline unsigned char get_pixel_color(size_t n, size_t row)
+static inline unsigned char
+get_pixel_color(size_t n, size_t row)
 {
-    return ((n & (1LLU << (nstripes - 1LLU - row)))
-            ? static_cast<unsigned char>('\xc0')
-            : static_cast<unsigned char>('\x40'));
+    return (
+        (n & (1LLU << (nstripes - 1LLU - row))) ? static_cast<unsigned char>('\xc0')
+                                                : static_cast<unsigned char>('\x40'));
 }
 
 class ImageChecker: public Pipeline
 {
   public:
     ImageChecker(size_t n);
-    virtual ~ImageChecker();
-    virtual void write(unsigned char* data, size_t len);
-    virtual void finish();
+    ~ImageChecker() override = default;
+    void write(unsigned char const* data, size_t len) override;
+    void finish() override;
 
   private:
     size_t n;
-    size_t offset;
-    bool okay;
+    size_t offset{0};
+    bool okay{true};
 };
 
 ImageChecker::ImageChecker(size_t n) :
-    Pipeline("image checker", 0),
-    n(n),
-    offset(0),
-    okay(true)
-{
-}
-
-ImageChecker::~ImageChecker()
+    Pipeline("image checker", nullptr),
+    n(n)
 {
 }
 
 void
-ImageChecker::write(unsigned char* data, size_t len)
+ImageChecker::write(unsigned char const* data, size_t len)
 {
-    for (size_t i = 0; i < len; ++i)
-    {
+    for (size_t i = 0; i < len; ++i) {
         size_t y = (this->offset + i) / width / stripesize;
         unsigned char color = get_pixel_color(n, y);
-        if (data[i] != color)
-        {
+        if (data[i] != color) {
             okay = false;
         }
     }
@@ -99,10 +93,8 @@ ImageChecker::write(unsigned char* data, size_t len)
 void
 ImageChecker::finish()
 {
-    if (! okay)
-    {
-        std::cout << "errors found checking image data for page " << n
-                  << std::endl;
+    if (!okay) {
+        std::cout << "errors found checking image data for page " << n << std::endl;
     }
 }
 
@@ -110,9 +102,8 @@ class ImageProvider: public QPDFObjectHandle::StreamDataProvider
 {
   public:
     ImageProvider(size_t n);
-    virtual ~ImageProvider();
-    virtual void provideStreamData(int objid, int generation,
-				   Pipeline* pipeline);
+    ~ImageProvider() override = default;
+    void provideStreamData(int objid, int generation, Pipeline* pipeline) override;
 
   private:
     size_t n;
@@ -123,21 +114,14 @@ ImageProvider::ImageProvider(size_t n) :
 {
 }
 
-ImageProvider::~ImageProvider()
-{
-}
-
 void
-ImageProvider::provideStreamData(int objid, int generation,
-                                 Pipeline* pipeline)
+ImageProvider::provideStreamData(int objid, int generation, Pipeline* pipeline)
 {
-    if (buf == 0)
-    {
+    if (buf == nullptr) {
         buf = new unsigned char[width * stripesize];
     }
     std::cout << "page " << n << " of " << npages << std::endl;
-    for (size_t y = 0; y < nstripes; ++y)
-    {
+    for (size_t y = 0; y < nstripes; ++y) {
         unsigned char color = get_pixel_color(n, y);
         memset(buf, color, width * stripesize);
         pipeline->write(buf, width * stripesize);
@@ -145,60 +129,63 @@ ImageProvider::provideStreamData(int objid, int generation,
     pipeline->finish();
 }
 
-void usage()
+void
+usage()
 {
-    std::cerr << "Usage: " << whoami << " {read|write} {large|small} outfile"
-              << std::endl;
+    std::cerr << "Usage: " << whoami << " {read|write} {large|small} outfile" << std::endl;
     exit(2);
 }
 
-static void set_parameters(bool large)
+static void
+set_parameters(bool large)
 {
     stripesize = large ? stripesize_large : stripesize_small;
     height = nstripes * stripesize;
     width = height;
 }
 
-std::string generate_page_contents(size_t pageno)
+std::string
+generate_page_contents(size_t pageno)
 {
-    std::string contents =
-        "BT /F1 24 Tf 72 720 Td (page " +  QUtil::uint_to_string(pageno) +
+    std::string contents = "BT /F1 24 Tf 72 720 Td (page " + QUtil::uint_to_string(pageno) +
         ") Tj ET\n"
         "q 468 0 0 468 72 72 cm /Im1 Do Q\n";
     return contents;
 }
 
-static QPDFObjectHandle create_page_contents(QPDF& pdf, size_t pageno)
+static QPDFObjectHandle
+create_page_contents(QPDF& pdf, size_t pageno)
 {
     return QPDFObjectHandle::newStream(&pdf, generate_page_contents(pageno));
 }
 
-QPDFObjectHandle newName(std::string const& name)
+QPDFObjectHandle
+newName(std::string const& name)
 {
     return QPDFObjectHandle::newName(name);
 }
 
-QPDFObjectHandle newInteger(size_t val)
+QPDFObjectHandle
+newInteger(size_t val)
 {
     return QPDFObjectHandle::newInteger(QIntC::to_longlong(val));
 }
 
-static void create_pdf(char const* filename)
+static void
+create_pdf(char const* filename)
 {
     QPDF pdf;
 
     pdf.emptyPDF();
 
-    QPDFObjectHandle font = pdf.makeIndirectObject(
-        QPDFObjectHandle::newDictionary());
+    QPDFObjectHandle font = pdf.makeIndirectObject(QPDFObjectHandle::newDictionary());
     font.replaceKey("/Type", newName("/Font"));
     font.replaceKey("/Subtype", newName("/Type1"));
     font.replaceKey("/Name", newName("/F1"));
     font.replaceKey("/BaseFont", newName("/Helvetica"));
     font.replaceKey("/Encoding", newName("/WinAnsiEncoding"));
 
-    QPDFObjectHandle procset =
-        pdf.makeIndirectObject(QPDFObjectHandle::newArray());
+    QPDFObjectHandle procset = pdf.makeIndirectObject(QPDFObjectHandle::newArray());
     procset.appendItem(newName("/PDF"));
     procset.appendItem(newName("/Text"));
     procset.appendItem(newName("/ImageC"));
@@ -213,8 +200,7 @@ static void create_pdf(char const* filename)
     mediabox.appendItem(newInteger(792));
 
     QPDFPageDocumentHelper dh(pdf);
-    for (size_t pageno = 1; pageno <= npages; ++pageno)
-    {
+    for (size_t pageno = 1; pageno <= npages; ++pageno) {
         QPDFObjectHandle image = QPDFObjectHandle::newStream(&pdf);
         QPDFObjectHandle image_dict = image.getDict();
         image_dict.replaceKey("/Type", newName("/XObject"));
@@ -223,11 +209,9 @@ static void create_pdf(char const* filename)
         image_dict.replaceKey("/BitsPerComponent", newInteger(8));
         image_dict.replaceKey("/Width", newInteger(width));
         image_dict.replaceKey("/Height", newInteger(height));
-        ImageProvider* p = new ImageProvider(pageno);
-        PointerHolder<QPDFObjectHandle::StreamDataProvider> provider(p);
-        image.replaceStreamData(provider,
-                                QPDFObjectHandle::newNull(),
-                                QPDFObjectHandle::newNull());
+        auto* p = new ImageProvider(pageno);
+        std::shared_ptr<QPDFObjectHandle::StreamDataProvider> provider(p);
+        image.replaceStreamData(provider, QPDFObjectHandle::newNull(), QPDFObjectHandle::newNull());
 
         QPDFObjectHandle xobject = QPDFObjectHandle::newDictionary();
         xobject.replaceKey("/Im1", image);
@@ -239,8 +223,7 @@ static void create_pdf(char const* filename)
 
         QPDFObjectHandle contents = create_page_contents(pdf, pageno);
 
-        QPDFObjectHandle page = pdf.makeIndirectObject(
-            QPDFObjectHandle::newDictionary());
+        QPDFObjectHandle page = pdf.makeIndirectObject(QPDFObjectHandle::newDictionary());
         page.replaceKey("/Type", newName("/Page"));
         page.replaceKey("/MediaBox", mediabox);
         page.replaceKey("/Contents", contents);
@@ -250,45 +233,41 @@ static void create_pdf(char const* filename)
     }
 
     QPDFWriter w(pdf, filename);
-    w.setStaticID(true);    // for testing only
+    w.setStaticID(true); // for testing only
     w.setStreamDataMode(qpdf_s_preserve);
     w.setObjectStreamMode(qpdf_o_disable);
     w.write();
 }
 
-static void check_page_contents(size_t pageno, QPDFObjectHandle page)
+static void
+check_page_contents(size_t pageno, QPDFObjectHandle page)
 {
-    PointerHolder<Buffer> buf =
-        page.getKey("/Contents").getStreamData();
+    std::shared_ptr<Buffer> buf = page.getKey("/Contents").getStreamData();
     std::string actual_contents =
-        std::string(reinterpret_cast<char *>(buf->getBuffer()),
-                    buf->getSize());
+        std::string(reinterpret_cast<char*>(buf->getBuffer()), buf->getSize());
     std::string expected_contents = generate_page_contents(pageno);
-    if (expected_contents != actual_contents)
-    {
+    if (expected_contents != actual_contents) {
         std::cout << "page contents wrong for page " << pageno << std::endl
-                  << "ACTUAL: " << actual_contents
-                  << "EXPECTED: " << expected_contents
-                  << "----\n";
+                  << "ACTUAL: " << actual_contents << "EXPECTED: " << expected_contents << "----\n";
     }
 }
 
-static void check_image(size_t pageno, QPDFObjectHandle page)
+static void
+check_image(size_t pageno, QPDFObjectHandle page)
 {
-    QPDFObjectHandle image =
-        page.getKey("/Resources").getKey("/XObject").getKey("/Im1");
+    QPDFObjectHandle image = page.getKey("/Resources").getKey("/XObject").getKey("/Im1");
     ImageChecker ic(pageno);
     image.pipeStreamData(&ic, 0, qpdf_dl_specialized);
 }
 
-static void check_pdf(char const* filename)
+static void
+check_pdf(char const* filename)
 {
     QPDF pdf;
     pdf.processFile(filename);
     std::vector<QPDFObjectHandle> const& pages = pdf.getAllPages();
     assert(pages.size() == QIntC::to_size(npages));
-    for (size_t i = 0; i < npages; ++i)
-    {
+    for (size_t i = 0; i < npages; ++i) {
         size_t pageno = i + 1;
         std::cout << "page " << pageno << " of " << npages << std::endl;
         check_page_contents(pageno, pages.at(i));
@@ -296,19 +275,14 @@ static void check_pdf(char const* filename)
     }
 }
 
-int main(int argc, char* argv[])
+int
+main(int argc, char* argv[])
 {
     whoami = QUtil::getWhoami(argv[0]);
     QUtil::setLineBuf(stdout);
 
-    // For libtool's sake....
-    if (strncmp(whoami, "lt-", 3) == 0)
-    {
-	whoami += 3;
-    }
-    if (argc != 4)
-    {
-	usage();
+    if (argc != 4) {
+        usage();
     }
     char const* operation = argv[1];
     char const* size = argv[2];
@@ -317,52 +291,36 @@ int main(int argc, char* argv[])
     bool op_write = false;
     bool size_large = false;
 
-    if (strcmp(operation, "write") == 0)
-    {
+    if (strcmp(operation, "write") == 0) {
         op_write = true;
-    }
-    else if (strcmp(operation, "read") == 0)
-    {
+    } else if (strcmp(operation, "read") == 0) {
         op_write = false;
-    }
-    else
-    {
+    } else {
         usage();
     }
 
-    if (strcmp(size, "large") == 0)
-    {
+    if (strcmp(size, "large") == 0) {
         size_large = true;
-    }
-    else if (strcmp(size, "small") == 0)
-    {
+    } else if (strcmp(size, "small") == 0) {
         size_large = false;
-    }
-    else
-    {
+    } else {
         usage();
     }
 
     set_parameters(size_large);
 
-    try
-    {
-        if (op_write)
-        {
+    try {
+        if (op_write) {
             create_pdf(filename);
-        }
-        else
-        {
+        } else {
             check_pdf(filename);
         }
-    }
-    catch (std::exception& e)
-    {
-	std::cerr << e.what() << std::endl;
-	exit(2);
+    } catch (std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        exit(2);
     }
 
-    delete [] buf;
+    delete[] buf;
 
     return 0;
 }

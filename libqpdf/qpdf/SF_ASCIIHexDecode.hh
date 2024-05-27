@@ -1,24 +1,25 @@
-#include <qpdf/QPDFStreamFilter.hh>
 #include <qpdf/Pl_ASCIIHexDecoder.hh>
+#include <qpdf/QPDFStreamFilter.hh>
 #include <memory>
 
 #ifndef SF_ASCIIHEXDECODE_HH
-#define SF_ASCIIHEXDECODE_HH
+# define SF_ASCIIHEXDECODE_HH
 
 class SF_ASCIIHexDecode: public QPDFStreamFilter
 {
   public:
     SF_ASCIIHexDecode() = default;
-    virtual ~SF_ASCIIHexDecode() = default;
+    ~SF_ASCIIHexDecode() override = default;
 
-    virtual Pipeline* getDecodePipeline(Pipeline* next) override
+    Pipeline*
+    getDecodePipeline(Pipeline* next) override
     {
-        this->pipeline = std::make_shared<Pl_ASCIIHexDecoder>(
-            "asciiHex decode", next);
+        this->pipeline = std::make_shared<Pl_ASCIIHexDecoder>("asciiHex decode", next);
         return this->pipeline.get();
     }
 
-    static std::shared_ptr<QPDFStreamFilter> factory()
+    static std::shared_ptr<QPDFStreamFilter>
+    factory()
     {
         return std::make_shared<SF_ASCIIHexDecode>();
     }

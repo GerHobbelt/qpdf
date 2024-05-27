@@ -2,48 +2,104 @@
 #include <qpdf/QUtil.hh>
 
 #include <iostream>
-#include <cstring>
 
-// QXXXQ describe
+// This program is a simple demonstration of different ways to use the QPDFJob API.
 
-static char const* whoami = 0;
+static char const* whoami = nullptr;
 
-#if 0 // QXXXQ
-static void usage(std::string const& msg)
+static void
+usage()
 {
-    std::cerr << "Usage: " << whoami << " QXXXQ" << std::endl;
+    std::cerr << "Usage: " << whoami << std::endl
+              << "This program linearizes the first page of in.pdf to out1.pdf, out2.pdf, and"
+              << std::endl
+              << " out3.pdf, each demonstrating a different way to use the QPDFJob API"
+              << std::endl;
     exit(2);
 }
-#endif
 
-int main(int argc, char* argv[])
+int
+main(int argc, char* argv[])
 {
     whoami = QUtil::getWhoami(argv[0]);
 
-    // For libtool's sake....
-    if (strncmp(whoami, "lt-", 3) == 0)
-    {
-	whoami += 3;
+    if (argc != 1) {
+        usage();
     }
 
-    try
-    {
+    // The examples below all catch std::exception. Note that QPDFUsage can be caught separately to
+    // report on errors in using the API itself. For CLI, this is command-line usage. For JSON or
+    // the API, it would be errors from the equivalent invocation.
+
+    // Note that staticId is used for testing only.
+
+    try {
+        // Use the config API
         QPDFJob j;
         j.config()
-            ->inputFile("/tmp/1.pdf")
-            ->outputFile("/tmp/2.pdf")
+            ->inputFile("in.pdf")
+            ->outputFile("out1.pdf")
             ->pages()
-            ->pageSpec(".", "1-z")
+            // Prior to qpdf 11.9.0, call ->pageSpec(file, range, password)
+            ->file(".")
+            ->range("1")
             ->endPages()
-            ->qdf()
+            ->linearize()
+            ->staticId()           // for testing only
+            ->compressStreams("n") // avoid dependency on zlib output
             ->checkConfiguration();
         j.run();
-    }
-    catch (std::exception& e)
-    {
-        // QXXXQ catch usage, configerror, whatever we end up with separately
+        std::cout << "out1 status: " << j.getExitCode() << std::endl;
+    } catch (std::exception& e) {
         std::cerr << "exception: " << e.what() << std::endl;
         return 2;
     }
+
+    try {
+        char const* new_argv[] = {
+            whoami,
+            "in.pdf",
+            "out2.pdf",
+            "--linearize",
+            "--pages",
+            ".",
+            "1",
+            "--",
+            "--static-id",
+            "--compress-streams=n", // avoid dependency on zlib output
+            nullptr};
+        QPDFJob j;
+        j.initializeFromArgv(new_argv);
+        j.run();
+        std::cout << "out2 status: " << j.getExitCode() << std::endl;
+    } catch (std::exception& e) {
+        std::cerr << "exception: " << e.what() << std::endl;
+        return 2;
+    }
+
+    try {
+        // Use the JSON API
+        QPDFJob j;
+        j.initializeFromJson(R"({
+  "inputFile": "in.pdf",
+  "outputFile": "out3.pdf",
+  "staticId": "",
+  "linearize": "",
+  "compressStreams": "n",
+  "pages": [
+    {
+      "file": ".",
+      "range": "1"
+    }
+  ]
+}
+)");
+        j.run();
+        std::cout << "out3 status: " << j.getExitCode() << std::endl;
+    } catch (std::exception& e) {
+        std::cerr << "exception: " << e.what() << std::endl;
+        return 2;
+    }
+
     return 0;
 }

@@ -2,18 +2,17 @@
 #include <qpdf/Pl_StdioFile.hh>
 #include <qpdf/QUtil.hh>
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
-#include <stdlib.h>
 
-int main(int argc, char* argv[])
+int
+main(int argc, char* argv[])
 {
-    if (argc != 4)
-    {
-	std::cerr << "Usage: runlength {-encode|-decode} infile outfile"
-                  << std::endl;
-	exit(2);
+    if (argc != 4) {
+        std::cerr << "Usage: runlength {-encode|-decode} infile outfile" << std::endl;
+        exit(2);
     }
 
     bool encode = (strcmp("-encode", argv[1]) == 0);
@@ -25,20 +24,14 @@ int main(int argc, char* argv[])
     Pl_StdioFile out("stdout", outfile);
     unsigned char buf[100];
     bool done = false;
-    Pl_RunLength rl(
-        "runlength", &out,
-        (encode ? Pl_RunLength::a_encode : Pl_RunLength::a_decode));
-    while (! done)
-    {
-	size_t len = fread(buf, 1, sizeof(buf), infile);
-	if (len <= 0)
-	{
-	    done = true;
-	}
-	else
-	{
-	    rl.write(buf, len);
-	}
+    Pl_RunLength rl("runlength", &out, (encode ? Pl_RunLength::a_encode : Pl_RunLength::a_decode));
+    while (!done) {
+        size_t len = fread(buf, 1, sizeof(buf), infile);
+        if (len <= 0) {
+            done = true;
+        } else {
+            rl.write(buf, len);
+        }
     }
     rl.finish();
     fclose(infile);
