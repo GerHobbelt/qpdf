@@ -664,7 +664,7 @@ compute_U_UE_value_V5(std::string const& user_password,
     // Algorithm 3.8 from the PDF 1.7 extension level 3
     char k[16];
     QUtil::initializeWithRandomBytes(
-        QUtil::unsigned_char_pointer(k), sizeof(k));
+        reinterpret_cast<unsigned char*>(k), sizeof(k));
     std::string validation_salt(k, 8);
     std::string key_salt(k + 8, 8);
     U = hash_V5(user_password, validation_salt, "", data) +
@@ -683,7 +683,7 @@ compute_O_OE_value_V5(std::string const& owner_password,
     // Algorithm 3.9 from the PDF 1.7 extension level 3
     char k[16];
     QUtil::initializeWithRandomBytes(
-        QUtil::unsigned_char_pointer(k), sizeof(k));
+        reinterpret_cast<unsigned char*>(k), sizeof(k));
     std::string validation_salt(k, 8);
     std::string key_salt(k + 8, 8);
     O = hash_V5(owner_password, validation_salt, U, data) +
@@ -1211,10 +1211,10 @@ QPDF::decryptString(std::string& str, int objid, int generation)
 	    size_t vlen = str.length();
 	    // Using PointerHolder guarantees that tmp will
 	    // be freed even if rc4.process throws an exception.
-	    PointerHolder<char> tmp(true, QUtil::copy_string(str));
+	    auto tmp = QUtil::make_shared_cstr(str);
 	    RC4 rc4(QUtil::unsigned_char_pointer(key), toI(key.length()));
-	    rc4.process(QUtil::unsigned_char_pointer(tmp.getPointer()), vlen);
-	    str = std::string(tmp.getPointer(), vlen);
+	    rc4.process(QUtil::unsigned_char_pointer(tmp.get()), vlen);
+	    str = std::string(tmp.get(), vlen);
 	}
     }
     catch (QPDFExc&)
@@ -1262,9 +1262,7 @@ QPDF::decryptStream(PointerHolder<EncryptionParameters> encp,
             {
                 QPDFObjectHandle decode_parms =
                     stream_dict.getKey("/DecodeParms");
-                if (decode_parms.getKey("/Type").isName() &&
-                    (decode_parms.getKey("/Type").getName() ==
-                     "/CryptFilterDecodeParms"))
+                if (decode_parms.isDictionaryOfType("/CryptFilterDecodeParms"))
                 {
                     QTC::TC("qpdf", "QPDF_encryption stream crypt filter");
                     method = interpretCF(encp, decode_parms.getKey("/Name"));
@@ -1280,8 +1278,7 @@ QPDF::decryptStream(PointerHolder<EncryptionParameters> encp,
                 {
                     for (int i = 0; i < filter.getArrayNItems(); ++i)
                     {
-                        if (filter.getArrayItem(i).isName() &&
-                            (filter.getArrayItem(i).getName() == "/Crypt"))
+                        if (filter.getArrayItem(i).isNameAndEquals("/Crypt"))
                         {
                             QPDFObjectHandle crypt_params =
                                 decode.getArrayItem(i);

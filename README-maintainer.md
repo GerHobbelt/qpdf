@@ -5,21 +5,21 @@
 Default:
 
 ```
-./configure CXX="g++ --std=c++14" --enable-werror
+./configure CXX="g++ --std=c++14" --enable-werror --enable-maintainer-mode
 ```
 
 Debugging:
 
 ```
 ./configure CXX="g++ --std=c++14" CFLAGS="-g" CXXFLAGS="-g" \
-   --enable-werror --disable-shared
+   --enable-werror --disable-shared --enable-maintainer-mode
 ```
 
 Profiling:
 
 ```
 ./configure CXX="g++ --std=c++14" CFLAGS="-g -pg" CXXFLAGS="-g -pg" \
-   LDFLAGS="-pg" --enable-werror --disable-shared
+   LDFLAGS="-pg" --enable-werror --disable-shared --enable-maintainer-mode
 ```
 
 Then run `gprof gmon.out`. Note that gmon.out is not cumulative.
@@ -31,8 +31,14 @@ Memory checks:
    CXXFLAGS="-fsanitize=address -fsanitize=undefined -g" \
    LDFLAGS="-fsanitize=address -fsanitize=undefined" \
    CC=clang CXX="clang++ --std=c++14" \
-   --enable-werror --disable-shared
+   --enable-werror --disable-shared --enable-maintainer-mode
 ```
+
+CHECKING DOCS ON readthedocs
+
+To check docs on readthedocs.io without running all of CI, push to the
+doc-check branch. Then visit https://qpdf.readthedocs.io/en/doc-check/
+Building docs from pull requests is also enabled.
 
 
 # GOOGLE OSS-FUZZ
@@ -52,7 +58,7 @@ Memory checks:
   Clone the oss-fuzz project. From the root directory of the repository:
 
   Add `-e GITHUB_FORK=fork -e GITHUB_BRANCH=branch` to build_fuzzers
-  from a qpdf fork/branch rather than qpdf/master.
+  from a qpdf fork/branch rather than qpdf/main.
 
   ```
   python3 infra/helper.py build_image --pull qpdf
@@ -117,7 +123,66 @@ Memory checks:
   the shared library boundary.
 
 * Put private member variables in PointerHolder<Members> for all
-  public classes. Remember to use QPDF_DLL on ~Members().
+  public classes. Remember to use QPDF_DLL on ~Members(). Exception:
+  indirection through PointerHolder<Members> is expensive, so don't do
+  it for classes that are copied a lot, like QPDFObjectHandle and
+  QPDFObject.
+
+* Traversal of objects is expensive. It's worth adding some complexity
+  to avoid needless traversals of objects.
+
+* Avoid attaching too much metadata to objects and object handles
+  since those have to get copied around a lot.
+
+
+HOW TO ADD A COMMAND-LINE ARGUMENT
+
+QPDFJob is documented in three places:
+
+* This section provides a quick reminder for how to add a command-line
+  argument
+
+* generate_auto_job has a detailed explanation about how QPDFJob and
+  generate_auto_job work together
+
+* The manual ("QPDFJob Design" in qpdf-job.rst) discusses the design
+  approach, rationale, and evolution of QPDFJob.
+
+Command-line arguments are closely coupled with QPDFJob. To add a new
+command-line argument, add the option to the appropriate table in
+job.yml. This will automatically declare a method in the private
+ArgParser class in QPDFJob_argv.cc which you have to implement. The
+implementation should make calls to methods in QPDFJob via its Config
+classes. Then, add the same option to either the no-json section of
+job.yml if it is to be excluded from the job json structure, or add it
+under the json structure to the place where it should appear in the
+json structure.
+
+In most cases, adding a new option will automatically declare and call
+the appropriate Config method, which you then have to implement. If
+you need a manual handler, you have to declare the option as manual in
+job.yml and implement the handler yourself, though the automatically
+generated code will declare it for you.
+
+The build will fail until the new option is documented in
+manual/cli.rst. To do that, create documentation for the option by
+adding a ".. qpdf:option::" directive followed by a magic help comment
+as described at the top of manual/cli.rst. Put this in the correct
+help topic. Help topics roughly correspond with sections in that
+chapter and are created using a special ".. help-topic" comment.
+Follow the example of other options for style.
+
+When done, the following should happen:
+
+* qpdf --new-option should work as expected
+* qpdf --help=--new-option should show the help from the comment in cli.rst
+* qpdf --help=topic should list --new-option for the correct topic
+* --new-option should appear in the manual
+* --new-option should be in the command-line option index in the manual
+* A Config method (in Config or one of the other Config classes in
+  QPDFJob) should exist that corresponds to the command-line flag
+* The job JSON file should have a new key in the schema corresponding
+  to the new option
 
 
 # RELEASE PREPARATION
@@ -129,7 +194,7 @@ Memory checks:
   git --no-pager grep -i -n -P "copyright.*$(expr $(date +%Y) - 1).*berkenbilt"
 
   Also update the copyright in these places:
-  * manual
+  * manual/conf.py
   * debian package -- search for copyright.*berkenbilt in debian/copyright
   * qtest-driver, TestDriver.pm in qtest source
 
@@ -146,7 +211,9 @@ Memory checks:
 
 * Check all open issues and pull requests in github and the
   sourceforge trackers. See ~/scripts/github-issues. Don't forget pull
-  requests.
+  requests. Note: If the location for reporting issues changes, do a
+  careful check of documentation and code to make sure any comments
+  that include the issue creation URL are updated.
 
 * Check `TODO` file to make sure all planned items for the release are
   done or retargeted.
@@ -157,8 +224,12 @@ Memory checks:
   variable names, strings, and comments.
 
   ```
-  ispell -p ispell-words **/*.hh **/*.cc manual/* ChangeLog README* TODO
+  make spell CLEAN=1
   ```
+  
+  This uses cspell. Install with `npm install -g cspell`. The output
+  of cspell is suitable for use with `M-x grep` in emacs. Add
+  exceptions to cSpell.json.
 
 * If needed, run large file and image comparison tests. Configure
   options:
@@ -207,7 +278,9 @@ Memory checks:
 * If any interfaces were added or changed, check C API to see whether
   changes are appropriate there as well. If necessary, review the
   casting policy in the manual, and ensure that integer types are
-  properly handled with QIntC or the appropriate cast.
+  properly handled with QIntC or the appropriate cast. Remember to
+  ensure that any exceptions thrown by the library are caught and
+  converted. See `trap_errors` in qpdf-c.cc.
 
 * Update versions and shared library details
 
@@ -217,14 +290,11 @@ Memory checks:
   * Make sure version numbers are consistent in the following locations:
     * configure.ac
     * libqpdf/QPDF.cc
-    * manual/qpdf-manual.xml
-    * qpdf/qpdf.cc
+    * manual/conf.py
     `make_dist` verifies this consistency.
 
   * Update release notes in manual. Look at diffs and ChangeLog.
-    Update release date in `manual/qpdf-manual.xml`. Remember to
-    ensure that the entities at the top of the document are consistent
-    with the release notes for both version and release date.
+    Update release date in `manual/release-notes.rst`.
 
   * Add a release entry to ChangeLog: "x.y.z: release"
 
@@ -269,7 +339,7 @@ Memory checks:
 
 # CREATING A RELEASE
 
-* Push to master. This will create an artifact called distribution
+* Push to main. This will create an artifact called distribution
   which will contain all the distribution files. Download these,
   verify the checksums from the job output, rename to remove -ci from
   the names, and copy to the release archive area.
@@ -304,16 +374,27 @@ Memory checks:
   `README-what-to-download.md` separately onto the download area if
   needed.
 
-* Ensure that the master branch has been pushed to github. The
+* Ensure that the main branch has been pushed to github. The
   rev-parse command below should show the same commit hash for all its
   arguments. Create and push a signed tag. This should be run with
-  HEAD pointing to the tip of master.
+  HEAD pointing to the tip of main.
 
   ```
-  git rev-parse upstream/master @
+  git rev-parse qpdf/main @
   git tag -s release-qpdf-$version @ -m"qpdf $version"
-  git push upstream release-qpdf-$version
+  git push qpdf release-qpdf-$version
   ```
+  
+* Update documentation branches
+
+  ```
+  git push qpdf @:$(echo $version | sed -E 's/\.[^\.]+$//')
+  git push qpdf @:stable
+  ```
+
+* If this is an x.y.0 release, visit
+  https://readthedocs.org/projects/qpdf/versions/ (log in with
+  github), and activate the latest major/minor version
 
 * Create a github release after pushing the tag. `gcurl` is an alias
   that includes the auth token.
@@ -339,7 +420,14 @@ Memory checks:
   If needed, go onto github and make any manual updates such as
   indicating a pre-release, adding release notes, etc.
 
+  Template for release notes:
+
   ```
+  This is qpdf version x.y.z. (Brief description)
+
+  For a full list of changes from previous releases, please see the [release notes](https://qpdf.readthedocs.io/en/stable/release-notes.html). See also [README-what-to-download](./README-what-to-download.md) for details about the available source and binary distributions.
+  ```
+
   # Publish release
   gcurl -XPOST $url -d'{"draft": false}'
   ```
@@ -355,31 +443,12 @@ Memory checks:
 
 * Publish a news item manually on sourceforge.
 
-* Update the web page to indicate the new version and to put the new
-  documentation in the `files` subdirectory of the website on
-  sourceforge.net.
-
-  ```
-  (cd /tmp; mkdir -p z; cd z; \
-   tar xf ~/Q/storage/releases/qpdf/qpdf/$version/qpdf-$version.tar.gz qpdf-$version/doc; \
-   scp -p qpdf-$version/doc/qpdf-* jay_berkenbilt,qpdf@frs.sourceforge.net:htdocs/files/)
-  ```
-
 * Upload the debian package and Ubuntu ppa backports.
 
 * Email the qpdf-announce list.
 
 
 # OTHER NOTES
-
-To construct a source distribution from a pristine checkout,
-`make_dist` does the following:
-
-```
-./configure --enable-doc-maintenance --enable-werror
-make build_manual
-make distclean
-```
 
 For local iteration on the AppImage generation, it works to just
 ./build-scripts/build-appimage and get the resulting AppImage from
@@ -422,3 +491,31 @@ whichever `./config-*` is appropriate for whichever compiler I need to
 test with. Start one of the Visual Studio native compiler shells, and
 from there, run one of the msys shells. The Visual Studio step is not
 necessary if just building with mingw.
+
+
+DOCS ON readthedocs.org
+
+* Registered for an account at readthedocs.org with my github account
+* Project page: https://readthedocs.org/projects/qpdf/
+* Docs: https://qpdf.readthedocs.io/
+* Admin -> Settings
+  * Set project home page
+  * Advanced
+    * Show version warning
+    * Default version: stable
+  * Email Notifications: set email address for build failures
+
+At this time, there is nothing in .github/workflows to support this.
+It's all set up as an integration directly between github and
+readthedocs.
+
+The way readthedocs.org does stable and versions doesn't exactly work
+for qpdf. My tagging convention is different from what they expect,
+and I don't need versions for every point release. I have the
+following branching strategy to support docs:
+
+* x.y -- points to the latest x.y.z release
+* stable -- points to the latest release
+
+The release process includes updating the approach branches and
+activating versions.

@@ -37,8 +37,20 @@
 # include <sys/stat.h>
 #endif
 
-// First element is 128
+// First element is 24
+static unsigned short pdf_doc_low_to_unicode[] = {
+    0x02d8,    // 0x18    BREVE
+    0x02c7,    // 0x19    CARON
+    0x02c6,    // 0x1a    MODIFIER LETTER CIRCUMFLEX ACCENT
+    0x02d9,    // 0x1b    DOT ABOVE
+    0x02dd,    // 0x1c    DOUBLE ACUTE ACCENT
+    0x02db,    // 0x1d    OGONEK
+    0x02da,    // 0x1e    RING ABOVE
+    0x02dc,    // 0x1f    SMALL TILDE
+};
+// First element is 127
 static unsigned short pdf_doc_to_unicode[] = {
+    0xfffd,    // 0x7f    UNDEFINED
     0x2022,    // 0x80    BULLET
     0x2020,    // 0x81    DAGGER
     0x2021,    // 0x82    DOUBLE DAGGER
@@ -515,6 +527,21 @@ QUtil::fopen_wrapper(std::string const& description, FILE* f)
     return f;
 }
 
+bool
+QUtil::file_can_be_opened(char const* filename)
+{
+    try
+    {
+        fclose(safe_fopen(filename, "rb"));
+        return true;
+    }
+    catch (std::runtime_error&)
+    {
+        // can't open the file
+    }
+    return false;
+}
+
 int
 QUtil::seek(FILE* stream, qpdf_offset_t offset, int whence)
 {
@@ -704,6 +731,18 @@ QUtil::copy_string(std::string const& str)
     return result;
 }
 
+std::shared_ptr<char>
+QUtil::make_shared_cstr(std::string const& str)
+{
+    auto result = std::shared_ptr<char>(
+        new char[str.length() + 1],
+        std::default_delete<char[]>());
+    // Use memcpy in case string contains nulls
+    result.get()[str.length()] = '\0';
+    memcpy(result.get(), str.c_str(), str.length());
+    return result;
+}
+
 std::string
 QUtil::hex_encode(std::string const& input)
 {
@@ -889,6 +928,7 @@ QUtil::get_current_qpdf_time()
                     static_cast<int>(ltime.wHour),
                     static_cast<int>(ltime.wMinute),
                     static_cast<int>(ltime.wSecond),
+                    // tzinfo.Bias is minutes before UTC
                     static_cast<int>(tzinfo.Bias));
 #else
     struct tm ltime;
@@ -899,13 +939,23 @@ QUtil::get_current_qpdf_time()
 #else
     ltime = *localtime(&now);
 #endif
+#if HAVE_TM_GMTOFF
+    // tm_gmtoff is seconds after UTC
+    int tzoff = -static_cast<int>(ltime.tm_gmtoff / 60);
+#elif HAVE_EXTERN_LONG_TIMEZONE
+    // timezone is seconds before UTC, not adjusted for daylight saving time
+    int tzoff = static_cast<int>(timezone / 60);
+#else
+    // Don't know how to get timezone on this platform
+    int tzoff = 0;
+#endif
     return QPDFTime(static_cast<int>(ltime.tm_year + 1900),
                     static_cast<int>(ltime.tm_mon + 1),
                     static_cast<int>(ltime.tm_mday),
                     static_cast<int>(ltime.tm_hour),
                     static_cast<int>(ltime.tm_min),
                     static_cast<int>(ltime.tm_sec),
-                    static_cast<int>(timezone / 60));
+                    tzoff);
 #endif
 }
 
@@ -2006,6 +2056,30 @@ encode_pdfdoc(unsigned long codepoint)
     unsigned char ch = '\0';
     switch (codepoint)
     {
+      case 0x02d8:
+        ch = 0x18;
+        break;
+      case 0x02c7:
+        ch = 0x19;
+        break;
+      case 0x02c6:
+        ch = 0x1a;
+        break;
+      case 0x02d9:
+        ch = 0x1b;
+        break;
+      case 0x02dd:
+        ch = 0x1c;
+        break;
+      case 0x02db:
+        ch = 0x1d;
+        break;
+      case 0x02da:
+        ch = 0x1e;
+        break;
+      case 0x02dc:
+        ch = 0x1f;
+        break;
       case 0x2022:
         ch = 0x80;
         break;
@@ -2401,9 +2475,13 @@ QUtil::pdf_doc_to_utf8(std::string const& val)
     {
         unsigned char ch = static_cast<unsigned char>(val.at(i));
         unsigned short ch_short = ch;
-        if ((ch >= 128) && (ch <= 160))
+        if ((ch >= 127) && (ch <= 160))
         {
-            ch_short = pdf_doc_to_unicode[ch - 128];
+            ch_short = pdf_doc_to_unicode[ch - 127];
+        }
+        else if ((ch >= 24) && (ch <= 31))
+        {
+            ch_short = pdf_doc_low_to_unicode[ch - 24];
         }
         result += QUtil::toUTF8(ch_short);
     }
@@ -2559,7 +2637,7 @@ QUtil::call_main_from_wmain(int argc, wchar_t* argv[],
                              QIntC::to_uchar(codepoint & 0xff)));
         }
         std::string utf8 = QUtil::utf16_to_utf8(utf16);
-        utf8_argv.push_back(std::shared_ptr<char>(QUtil::copy_string(utf8.c_str()), std::default_delete<char[]>()));
+        utf8_argv.push_back(QUtil::make_shared_cstr(utf8));
     }
     auto utf8_argv_sp =
         std::shared_ptr<char*>(new char*[1+utf8_argv.size()], std::default_delete<char*[]>());

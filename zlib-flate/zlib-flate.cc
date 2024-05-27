@@ -1,6 +1,7 @@
 #include <qpdf/Pl_Flate.hh>
 #include <qpdf/Pl_StdioFile.hh>
 #include <qpdf/QUtil.hh>
+#include <qpdf/QPDF.hh>
 
 #include <stdio.h>
 #include <string.h>
@@ -35,7 +36,8 @@ int main(int argc, char* argv[])
 
     if ((argc == 2) && (strcmp(argv[1], "--version") == 0))
     {
-	std::cout << whoami << " version 1.0" << std::endl;
+        std::cout << whoami << " from qpdf version "
+                  << QPDF::QPDFVersion() << std::endl;
 	exit(0);
     }
 
@@ -70,6 +72,12 @@ int main(int argc, char* argv[])
     PointerHolder<Pl_StdioFile> out = new Pl_StdioFile("stdout", stdout);
     PointerHolder<Pl_Flate> flate =
         new Pl_Flate("flate", out.getPointer(), action);
+    bool warn = false;
+    flate->setWarnCallback([&warn](char const* msg, int code) {
+        warn = true;
+        std::cerr << whoami << ": WARNING: zlib code " << code
+                  << ", msg = " << msg << std::endl;
+    });
 
     try
     {
@@ -91,9 +99,13 @@ int main(int argc, char* argv[])
     }
     catch (std::exception& e)
     {
-	std::cerr << e.what() << std::endl;
+	std::cerr << whoami << ": " << e.what() << std::endl;
 	exit(2);
     }
 
+    if (warn)
+    {
+        exit(3);
+    }
     return 0;
 }

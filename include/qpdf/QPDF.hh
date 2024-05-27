@@ -115,7 +115,7 @@ class QPDF
     // For certain forensic or investigatory purposes, it may
     // sometimes be useful to specify the encryption key directly,
     // even though regular PDF applications do not provide a way to do
-    // this. calling setPasswordIsHexKey(true) before calling any of
+    // this. Calling setPasswordIsHexKey(true) before calling any of
     // the process methods will bypass the normal encryption key
     // computation or recovery mechanisms and interpret the bytes in
     // the password as a hex-encoded encryption key. Note that we
@@ -140,7 +140,7 @@ class QPDF
     // filter types or override existing ones provided by the library.
     // Registered stream filters are used for decoding only as you can
     // override encoding with stream data providers. For example, you
-    // could use this method to support for one of the other filter
+    // could use this method to add support for one of the other filter
     // types by using additional third-party libraries that qpdf does
     // not presently use. The standard filters are implemented using
     // QPDFStreamFilter classes.
@@ -175,7 +175,7 @@ class QPDF
 
     // By default, any warnings are issued to std::cerr or the error
     // stream specified in a call to setOutputStreams as they are
-    // encountered.  If this is called with a true value, reporting of
+    // encountered.  If this method is called with a true value, reporting of
     // warnings is suppressed.  You may still retrieve warnings by
     // calling getWarnings.
     QPDF_DLL
@@ -215,7 +215,7 @@ class QPDF
     // other objects, some transient and some not. Since what's
     // relevant is whether the source QPDF is transient, the method
     // must be called on the source QPDF, not the destination one.
-    // Since this method will make a copy of the stream in RAM, so be
+    // This method will make a copy of the stream in RAM, so be
     // sure you have enough memory to simultaneously hold all the
     // streams you're copying.
     QPDF_DLL
@@ -236,13 +236,13 @@ class QPDF
     QPDF_DLL
     bool anyWarnings() const;
 
-    // Indicate the number of warnings that have been issued so far.
-    // Does not clear the list of warnings.
+    // Indicate the number of warnings that have been issued since the last
+    // call to getWarnings.  Does not clear the list of warnings.
     QPDF_DLL
     size_t numWarnings() const;
 
     // Return an application-scoped unique ID for this QPDF object.
-    // This is not a globally unique ID. It is constructing using a
+    // This is not a globally unique ID. It is constructed using a
     // timestamp and a random number and is intended to be unique
     // among QPDF objects that are created by a single run of an
     // application. While it's very likely that these are actually
@@ -351,7 +351,7 @@ class QPDF
     // you are going to turn into a form XObject, though you can also
     // use QPDFPageObjectHelper::getFormXObjectForPage for that
     // purpose.
-
+    //
     // When copying objects with this method, object structure will be
     // preserved, so all indirectly referenced indirect objects will
     // be copied as well.  This includes any circular references that
@@ -595,7 +595,7 @@ class QPDF
     // duplicated. For efficiency, this method returns a const
     // reference to an internal vector of pages. Calls to addPage,
     // addPageAt, and removePage safely update this, but directly
-    // manipulation of the pages three or pushing inheritable objects
+    // manipulation of the pages tree or pushing inheritable objects
     // to the page level may invalidate it. See comments for
     // updateAllPagesCache() for additional notes. Newer code should
     // use QPDFPageDocumentHelper::getAllPages instead. The decision
@@ -604,6 +604,15 @@ class QPDF
     // safe to use this for files that you are not modifying.
     QPDF_DLL
     std::vector<QPDFObjectHandle> const& getAllPages();
+
+    // These methods, given a page object or its object/generation
+    // number, returns the 0-based index into the array returned by
+    // getAllPages() for that page. An exception is thrown if the page
+    // is not found.
+    QPDF_DLL
+    int findPage(QPDFObjGen const& og);
+    QPDF_DLL
+    int findPage(QPDFObjectHandle& page);
 
     // This method synchronizes QPDF's cache of the page structure
     // with the actual /Pages tree.  If you restrict changes to the
@@ -990,8 +999,6 @@ class QPDF
                              std::set<QPDFObjGen>& visited,
                              std::set<QPDFObjGen>& seen);
     void insertPage(QPDFObjectHandle newpage, int pos);
-    int findPage(QPDFObjGen const& og);
-    int findPage(QPDFObjectHandle& page);
     void flattenPagesTree();
     void insertPageobjToPage(QPDFObjectHandle const& obj, int pos,
                              bool check_duplicate);

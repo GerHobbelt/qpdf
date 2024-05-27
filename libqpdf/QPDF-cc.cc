@@ -25,7 +25,7 @@
 #include <qpdf/QPDF_Stream.hh>
 #include <qpdf/QPDF_Array.hh>
 
-std::string QPDF::qpdf_version = "10.2.0";
+std::string QPDF::qpdf_version = "10.5.0";
 
 static char const* EMPTY_PDF =
     "%PDF-1.3\n"
@@ -85,8 +85,10 @@ class InvalidInputSource: public InputSource
   private:
     void throwException()
     {
-        throw std::runtime_error(
-            "QPDF operation attempted after closing input source");
+        throw std::logic_error(
+            "QPDF operation attempted on a QPDF object with no input source."
+            " QPDF operations are invalid before processFile (or another"
+            " process method) or after closeInputSource");
     }
 };
 
@@ -196,6 +198,7 @@ QPDF::EncryptionParameters::EncryptionParameters() :
 
 QPDF::Members::Members() :
     unique_id(0),
+    file(new InvalidInputSource()),
     provided_password_is_hex_key(false),
     ignore_xref_streams(false),
     suppress_warnings(false),
@@ -590,7 +593,6 @@ QPDF::reconstruct_xref(QPDFExc& e)
     this->m->file->seek(0, SEEK_END);
     qpdf_offset_t eof = this->m->file->tell();
     this->m->file->seek(0, SEEK_SET);
-    bool in_obj = false;
     qpdf_offset_t line_start = 0;
     // Don't allow very long tokens here during recovery.
     static size_t const MAX_LEN = 100;
@@ -604,46 +606,36 @@ QPDF::reconstruct_xref(QPDFExc& e)
             this->m->file->tell() - toO(t1.getValue().length());
         if (token_start >= next_line_start)
         {
-            // don't process yet
+            // don't process yet -- wait until we get to the line
+            // containing this token
         }
-	else if (in_obj)
-	{
-            if (t1 == QPDFTokenizer::Token(QPDFTokenizer::tt_word, "endobj"))
-	    {
-		in_obj = false;
-	    }
-	}
-        else
+	else if (t1.getType() == QPDFTokenizer::tt_integer)
         {
-            if (t1.getType() == QPDFTokenizer::tt_integer)
+            QPDFTokenizer::Token t2 =
+                readToken(this->m->file, MAX_LEN);
+            QPDFTokenizer::Token t3 =
+                readToken(this->m->file, MAX_LEN);
+            if ((t2.getType() == QPDFTokenizer::tt_integer) &&
+                (t3 == QPDFTokenizer::Token(QPDFTokenizer::tt_word, "obj")))
             {
-                QPDFTokenizer::Token t2 =
-                    readToken(this->m->file, MAX_LEN);
-                QPDFTokenizer::Token t3 =
-                    readToken(this->m->file, MAX_LEN);
-                if ((t2.getType() == QPDFTokenizer::tt_integer) &&
-                    (t3 == QPDFTokenizer::Token(QPDFTokenizer::tt_word, "obj")))
-                {
-                    in_obj = true;
-                    int obj = QUtil::string_to_int(t1.getValue().c_str());
-                    int gen = QUtil::string_to_int(t2.getValue().c_str());
-                    insertXrefEntry(obj, 1, token_start, gen, true);
-                }
+                int obj = QUtil::string_to_int(t1.getValue().c_str());
+                int gen = QUtil::string_to_int(t2.getValue().c_str());
+                insertXrefEntry(obj, 1, token_start, gen, true);
             }
-            else if ((! this->m->trailer.isInitialized()) &&
-                     (t1 == QPDFTokenizer::Token(
-                         QPDFTokenizer::tt_word, "trailer")))
-            {
-                QPDFObjectHandle t =
+        }
+        else if ((! this->m->trailer.isInitialized()) &&
+                 (t1 == QPDFTokenizer::Token(
+                     QPDFTokenizer::tt_word, "trailer")))
+        {
+            QPDFObjectHandle t =
                     readObject(this->m->file, "trailer", 0, 0, false);
-                if (! t.isDictionary())
-                {
-                    // Oh well.  It was worth a try.
-                }
-                else
-                {
-                    setTrailer(t);
-                }
+            if (! t.isDictionary())
+            {
+                // Oh well.  It was worth a try.
+            }
+            else
+            {
+                setTrailer(t);
             }
 	}
         this->m->file->seek(next_line_start, SEEK_SET);
@@ -1108,10 +1100,7 @@ QPDF::read_xrefStream(qpdf_offset_t xref_offset)
 	{
 	    // ignore -- report error below
 	}
-	if (xref_obj.isInitialized() &&
-	    xref_obj.isStream() &&
-	    xref_obj.getDict().getKey("/Type").isName() &&
-	    xref_obj.getDict().getKey("/Type").getName() == "/XRef")
+        if (xref_obj.isStreamOfType("/XRef"))
 	{
 	    QTC::TC("qpdf", "QPDF found xref stream");
 	    found = true;
@@ -2210,8 +2199,7 @@ QPDF::resolveObjectsInStream(int obj_stream_number)
         this->m->obj_cache[stream_og].end_after_space;
 
     QPDFObjectHandle dict = obj_stream.getDict();
-    if (! (dict.getKey("/Type").isName() &&
-	   dict.getKey("/Type").getName() == "/ObjStm"))
+    if (! dict.isDictionaryOfType("/ObjStm"))
     {
 	QTC::TC("qpdf", "QPDF ERR object stream with wrong type");
 	warn(QPDFExc(qpdf_e_damaged_pdf, this->m->file->getName(),
@@ -2857,13 +2845,10 @@ QPDF::getCompressibleObjGens()
 	    {
 		QTC::TC("qpdf", "QPDF exclude encryption dictionary");
 	    }
-	    else if ((! obj.isStream()) &&
-		     (! (obj.isDictionary() &&
+            else if (! (obj.isStream() ||
+                        (obj.isDictionaryOfType("/Sig") &&
                          obj.hasKey("/ByteRange") &&
-                         obj.hasKey("/Contents") &&
-                         obj.hasKey("/Type") &&
-                         obj.getKey("/Type").isName() &&
-                         obj.getKey("/Type").getName() == "/Sig")))
+                         obj.hasKey("/Contents"))))
 	    {
 		result.push_back(og);
 	    }

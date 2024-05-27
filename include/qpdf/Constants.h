@@ -38,6 +38,39 @@ enum qpdf_error_code_e
     qpdf_e_password,		/* incorrect password for encrypted file */
     qpdf_e_damaged_pdf,		/* syntax errors or other damage in PDF */
     qpdf_e_pages,               /* erroneous or unsupported pages structure */
+    qpdf_e_object,              /* type/bounds errors accessing objects */
+};
+
+/* Object Types */
+
+/* PDF objects represented by QPDFObjectHandle or, in the C API, by
+ * qpdf_oh, have a unique type code that has one of the values in the
+ * list below. As new object types are added to qpdf, additional items
+ * may be added to the list, so code that switches on these values
+ * should take that into consideration. (Maintainer note: it would be
+ * better to call this qpdf_ot_* rather than ot_* to reduce likelihood
+ * of name collision, but since QPDFObject::object_type_e is an alias
+ * to this type, changing the names of the values breaks backward
+ * compatibility.)
+ */
+enum qpdf_object_type_e {
+    /* Object types internal to qpdf */
+    ot_uninitialized,
+    ot_reserved,
+    /* Object types that can occur in the main document */
+    ot_null,
+    ot_boolean,
+    ot_integer,
+    ot_real,
+    ot_string,
+    ot_name,
+    ot_array,
+    ot_dictionary,
+    ot_stream,
+    /* Additional object types that can occur in content streams */
+    ot_operator,
+    ot_inlineimage,
+    /* NOTE: if adding to this list, update QPDFObject.hh */
 };
 
 /* Write Parameters. See QPDFWriter.hh for details. */
@@ -141,6 +174,13 @@ enum pdf_annotation_flag_e
     an_locked = 1 << 7,
     an_toggle_no_view = 1 << 8,
     an_locked_contents = 1 << 9
+};
+
+/* Encryption/password status for QPDFJob */
+enum qpdf_encryption_status_e
+{
+    qpdf_es_encrypted = 1 << 0,
+    qpdf_es_password_incorrect = 1 << 1
 };
 
 #endif /* QPDFCONSTANTS_H */

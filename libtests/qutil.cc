@@ -150,6 +150,16 @@ void string_conversion_test()
 	std::cout << "compare failed" << std::endl;
     }
     delete [] tmp;
+    // Also test with make_shared_cstr
+    auto tmp2 = QUtil::make_shared_cstr(embedded_null);
+    if (memcmp(tmp2.get(), embedded_null.c_str(), 7) == 0)
+    {
+	std::cout << "compare okay" << std::endl;
+    }
+    else
+    {
+	std::cout << "compare failed" << std::endl;
+    }
 
     std::string int_max_str = QUtil::int_to_string(INT_MAX);
     std::string int_min_str = QUtil::int_to_string(INT_MIN);
@@ -203,6 +213,9 @@ void fopen_wrapper_test()
 	std::cout << "exception: " << s.what() << std::endl;
         assert(s.getErrno() != 0);
     }
+
+    assert(QUtil::file_can_be_opened("qutil.out"));
+    assert(! QUtil::file_can_be_opened("/does/not/exist"));
 }
 
 void getenv_test()
@@ -305,12 +318,12 @@ void utf8_to_ascii_test()
 
 void transcoding_test(std::string (*to_utf8)(std::string const&),
                       std::string (*from_utf8)(std::string const&, char),
-                      int last, std::string unknown)
+                      int first, int last, std::string unknown)
 {
     std::string in(" ");
     std::string out;
     std::string back;
-    for (int i = 128; i <= last; ++i)
+    for (int i = first; i <= last; ++i)
     {
         in.at(0) = static_cast<char>(static_cast<unsigned char>(i));
         out = (*to_utf8)(in);
@@ -352,13 +365,16 @@ void print_alternatives(std::string const& str)
 void transcoding_test()
 {
     transcoding_test(&QUtil::pdf_doc_to_utf8,
-                     &QUtil::utf8_to_pdf_doc, 160, "\x9f");
+                     &QUtil::utf8_to_pdf_doc, 127, 160, "\x9f");
     std::cout << "bidirectional pdf doc done" << std::endl;
+    transcoding_test(&QUtil::pdf_doc_to_utf8,
+                     &QUtil::utf8_to_pdf_doc, 24, 31, "?");
+    std::cout << "bidirectional pdf doc low done" << std::endl;
     transcoding_test(&QUtil::win_ansi_to_utf8,
-                     &QUtil::utf8_to_win_ansi, 160, "?");
+                     &QUtil::utf8_to_win_ansi, 128, 160, "?");
     std::cout << "bidirectional win ansi done" << std::endl;
     transcoding_test(&QUtil::mac_roman_to_utf8,
-                     &QUtil::utf8_to_mac_roman, 255, "?");
+                     &QUtil::utf8_to_mac_roman, 128, 255, "?");
     std::cout << "bidirectional mac roman done" << std::endl;
     check_analyze("pi = \317\200", true, true, false);
     check_analyze("pi != \317", true, false, false);
@@ -393,12 +409,16 @@ void transcoding_test()
     print_alternatives(utf8);
     print_alternatives("quack");
     std::cout << "done alternatives" << std::endl;
+    std::string low = QUtil::pdf_doc_to_utf8(
+        "w\030w\031w\032w\033w\034w\035w\036w\037w\177w");
+    std::cout << low << std::endl;
+    std::cout << "done low characters" << std::endl;
 }
 
 void print_whoami(char const* str)
 {
-    PointerHolder<char> dup(true, QUtil::copy_string(str));
-    std::cout << QUtil::getWhoami(dup.getPointer()) << std::endl;
+    auto dup = QUtil::make_shared_cstr(str);
+    std::cout << QUtil::getWhoami(dup.get()) << std::endl;
 }
 
 void get_whoami_test()

@@ -1241,9 +1241,7 @@ QPDFWriter::enqueueObject(QPDFObjectHandle object)
                 " another file.");
         }
 
-        if (this->m->qdf_mode &&
-            object.isStream() && object.getDict().getKey("/Type").isName() &&
-            (object.getDict().getKey("/Type").getName() == "/XRef"))
+        if (this->m->qdf_mode && object.isStreamOfType("/XRef"))
         {
             // As a special case, do not output any extraneous XRef
             // streams in QDF mode. Doing so will confuse fix-qdf,
@@ -1474,8 +1472,7 @@ QPDFWriter::willFilterStream(QPDFObjectHandle stream,
     QPDFObjGen old_og = stream.getObjGen();
     QPDFObjectHandle stream_dict = stream.getDict();
 
-    if (stream_dict.getKey("/Type").isName() &&
-        (stream_dict.getKey("/Type").getName() == "/Metadata"))
+    if (stream_dict.isDictionaryOfType("/Metadata"))
     {
         is_metadata = true;
     }
@@ -1691,11 +1688,8 @@ QPDFWriter::unparseObject(QPDFObjectHandle object, int level,
             QTC::TC("qpdf", "QPDFWriter preserve Extensions");
             QPDFObjectHandle adbe = extensions.getKey("/ADBE");
             if (adbe.isDictionary() &&
-                adbe.hasKey("/BaseVersion") &&
-                adbe.getKey("/BaseVersion").isName() &&
-                (adbe.getKey("/BaseVersion").getName() ==
-                 "/" + this->m->final_pdf_version) &&
-                adbe.hasKey("/ExtensionLevel") &&
+                adbe.getKey("/BaseVersion").isNameAndEquals(
+                            "/" + this->m->final_pdf_version) &&
                 adbe.getKey("/ExtensionLevel").isInteger() &&
                 (adbe.getKey("/ExtensionLevel").getIntValue() ==
                  this->m->final_extension_level))
@@ -1764,7 +1758,7 @@ QPDFWriter::unparseObject(QPDFObjectHandle object, int level,
                         for (int i = 0; i < filter.getArrayNItems(); ++i)
                         {
                             QPDFObjectHandle item = filter.getArrayItem(i);
-                            if (item.isName() && item.getName() == "/Crypt")
+                            if (item.isNameAndEquals("/Crypt"))
                             {
                                 idx = i;
                                 break;
@@ -1802,9 +1796,7 @@ QPDFWriter::unparseObject(QPDFObjectHandle object, int level,
 	    writeString(QPDF_Name::normalizeName(key));
 	    writeString(" ");
 	    if (key == "/Contents" &&
-		object.hasKey("/Type") &&
-		object.getKey("/Type").isName() &&
-		object.getKey("/Type").getName() == "/Sig" &&
+		object.isDictionaryOfType("/Sig") &&
 		object.hasKey("/ByteRange"))
 	    {
                 QTC::TC("qpdf", "QPDFWriter no encryption sig contents");
@@ -1923,9 +1915,8 @@ QPDFWriter::unparseObject(QPDFObjectHandle object, int level,
 	    }
 	    else
 	    {
-		PointerHolder<char> tmp_ph =
-                    PointerHolder<char>(true, QUtil::copy_string(val));
-                char* tmp = tmp_ph.getPointer();
+		auto tmp_ph = QUtil::make_shared_cstr(val);
+                char* tmp = tmp_ph.get();
 		size_t vlen = val.length();
 		RC4 rc4(QUtil::unsigned_char_pointer(this->m->cur_data_key),
 			QIntC::to_int(this->m->cur_data_key.length()));
@@ -2361,19 +2352,42 @@ QPDFWriter::initializeSpecialStreams()
 void
 QPDFWriter::preserveObjectStreams()
 {
-    // Our object_to_object_stream map has to map ObjGen -> ObjGen
-    // since we may be generating object streams out of old objects
-    // that have generation numbers greater than zero.  However in an
-    // existing PDF, all object stream objects and all objects in them
-    // must have generation 0 because the PDF spec does not provide
-    // any way to do otherwise.
     std::map<int, int> omap;
     QPDF::Writer::getObjectStreamData(this->m->pdf, omap);
-    for (std::map<int, int>::iterator iter = omap.begin();
-         iter != omap.end(); ++iter)
+    if (omap.empty())
     {
-        this->m->object_to_object_stream[QPDFObjGen((*iter).first, 0)] =
-            (*iter).second;
+        return;
+    }
+    // Our object_to_object_stream map has to map ObjGen -> ObjGen
+    // since we may be generating object streams out of old objects
+    // that have generation numbers greater than zero. However in an
+    // existing PDF, all object stream objects and all objects in them
+    // must have generation 0 because the PDF spec does not provide
+    // any way to do otherwise. This code filters out objects that are
+    // not allowed to be in object streams. In addition to removing
+    // objects that were erroneously included in object streams in the
+    // source PDF, it also prevents unreferenced objects from being
+    // included.
+    std::set<QPDFObjGen> eligible;
+    if (! this->m->preserve_unreferenced_objects)
+    {
+        std::vector<QPDFObjGen> eligible_v =
+            QPDF::Writer::getCompressibleObjGens(this->m->pdf);
+        eligible = std::set<QPDFObjGen>(eligible_v.begin(), eligible_v.end());
+    }
+    QTC::TC("qpdf", "QPDFWriter preserve object streams",
+            this->m->preserve_unreferenced_objects ? 0 : 1);
+    for (auto iter: omap)
+    {
+        QPDFObjGen og(iter.first, 0);
+        if (eligible.count(og) || this->m->preserve_unreferenced_objects)
+        {
+            this->m->object_to_object_stream[og] = iter.second;
+        }
+        else
+        {
+            QTC::TC("qpdf", "QPDFWriter exclude from object stream");
+        }
     }
 }
 

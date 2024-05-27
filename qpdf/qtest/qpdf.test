@@ -8,6 +8,9 @@ use File::Basename;
 use File::Copy;
 use File::Spec;
 
+unshift(@INC, '../../libtests/qtest/arg_parser');
+require completion_helpers;
+
 chdir("qpdf") or die "chdir testdir failed: $!\n";
 
 require TestDriver;
@@ -85,7 +88,16 @@ $td->runtest("UTF-16 encoding errors",
 	     {$td->FILE => "unicode-errors.out", $td->EXIT_STATUS => 0},
 	     $td->NORMALIZE_NEWLINES);
 
+# Tests to exercise QPDFArgParser belong in arg_parser.test in
+# libtests. These tests are supposed to be specific to the qpdf cli.
+# Since they were written prior to moving QPDFArgParser into the
+# library, there are several tests here that also exercise
+# QPDFArgParser logic.
 my @completion_tests = (
+    ['', 0, 'bad-input-1'],
+    ['', 1, 'bad-input-2'],
+    ['', 2, 'bad-input-3'],
+    ['qpdf', 2, 'bad-input-4'],
     ['qpdf ', undef, 'top'],
     ['qpdf -', undef, 'top-arg'],
     ['qpdf --enc', undef, 'enc'],
@@ -111,6 +123,8 @@ my @completion_tests = (
     ['qpdf --encrypt user\ password ', undef, 'quoting'],
     );
 $n_tests += 2 * scalar(@completion_tests);
+my $completion_filter =
+    "perl ../../../libtests/qtest/arg_parser/filter-completion.pl";
 foreach my $c (@completion_tests)
 {
     my ($cmd, $point, $description) = @$c;
@@ -121,13 +135,13 @@ foreach my $c (@completion_tests)
         $zout = $out;
     }
     $td->runtest("bash completion: $description",
-                 {$td->COMMAND => [@{bash_completion($cmd, $point)}],
-                      $td->FILTER => "perl filter-completion.pl $out"},
+                 {$td->COMMAND => [@{bash_completion("qpdf", $cmd, $point)}],
+                      $td->FILTER => "$completion_filter $out"},
                  {$td->FILE => "$out", $td->EXIT_STATUS => 0},
                  $td->NORMALIZE_NEWLINES);
     $td->runtest("zsh completion: $description",
-                 {$td->COMMAND => [@{zsh_completion($cmd, $point)}],
-                      $td->FILTER => "perl filter-completion.pl $zout"},
+                 {$td->COMMAND => [@{zsh_completion("qpdf", $cmd, $point)}],
+                      $td->FILTER => "$completion_filter $zout"},
                  {$td->FILE => "$zout", $td->EXIT_STATUS => 0},
                  $td->NORMALIZE_NEWLINES);
 }
@@ -135,7 +149,7 @@ foreach my $c (@completion_tests)
 show_ntests();
 # ----------
 $td->notify("--- Argument Parsing ---");
-$n_tests += 6;
+$n_tests += 12;
 
 $td->runtest("required argument",
              {$td->COMMAND => "qpdf --password minimal.pdf"},
@@ -165,6 +179,36 @@ $td->runtest("missing underlay filename",
 $td->runtest("extra overlay filename",
              {$td->COMMAND => "qpdf --overlay x x --"},
              {$td->REGEXP => ".*overlay file already specified.*",
+                  $td->EXIT_STATUS => 2},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("multiple pages options",
+             {$td->COMMAND => "qpdf --pages . --password=x -- --pages . --"},
+             {$td->REGEXP => ".*--pages may only be specified one time.*",
+                  $td->EXIT_STATUS => 2},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("bad numeric range detects unclosed --pages",
+             {$td->COMMAND => "qpdf --pages . --pages . --"},
+             {$td->REGEXP => ".*pages options must be terminated with --.*",
+                  $td->EXIT_STATUS => 2},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("bad file detected as unclosed --pages",
+             {$td->COMMAND => "qpdf --pages . 1 --xyz out"},
+             {$td->REGEXP => ".*pages options must be terminated with --.*",
+                  $td->EXIT_STATUS => 2},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("misplaced pages password 1",
+             {$td->COMMAND => "qpdf --pages . 1 --password=z --"},
+             {$td->REGEXP => ".*password must immediately follow a file name.*",
+                  $td->EXIT_STATUS => 2},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("misplaced pages password 2",
+             {$td->COMMAND => "qpdf --pages --password=z . 1 --"},
+             {$td->REGEXP => ".*password must immediately follow a file name.*",
+                  $td->EXIT_STATUS => 2},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("duplicated pages password",
+             {$td->COMMAND => "qpdf --pages . --password=z --password=z --"},
+             {$td->REGEXP => ".*password already specified.*",
                   $td->EXIT_STATUS => 2},
              $td->NORMALIZE_NEWLINES);
 
@@ -254,11 +298,15 @@ $td->runtest("check final version",
 show_ntests();
 # ----------
 $td->notify("--- Exceptions ---");
-$n_tests += 1;
+$n_tests += 2;
 
 $td->runtest("check exception handling",
              {$td->COMMAND => "test_driver 61 -"},
              {$td->FILE => "exceptions.out", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("check certain exception types",
+             {$td->COMMAND => "test_driver 81 -"},
+             {$td->STRING => "test 81 done\n", $td->EXIT_STATUS => 0},
              $td->NORMALIZE_NEWLINES);
 
 show_ntests();
@@ -322,6 +370,121 @@ foreach my $f (@dangling)
                  {$td->FILE => "a.pdf"},
                  {$td->FILE => "$f-dangling-out.pdf"});
 }
+show_ntests();
+# ----------
+$td->notify("--- QPDFJob Tests ---");
+
+open(F, ">auto-txt") or die;
+print F "from file";
+close(F);
+
+my @bad_json = (
+    "bare-option-false",
+    "choice-mismatch",
+    "encrypt-duplicate-key-length",
+    "encrypt-missing-password",
+    "encrypt-no-key-length",
+    "pages-no-file",
+    "schema-error",
+    "json-error"
+    );
+my @good_json = (
+    "choice-match",
+    "input-file-password",
+    "empty-input",
+    "replace-input",
+    "encrypt-40",
+    "encrypt-128",
+    "encrypt-256-with-restrictions",
+    "add-attachments",
+    "copy-attachments",
+    "underlay-overlay",
+    "underlay-overlay-password",
+    "misc-options",
+    );
+$n_tests += 10 + scalar(@bad_json) + (2 * scalar(@good_json));
+
+
+foreach my $i (@bad_json)
+{
+    $td->runtest("QPDFJob bad json: $i",
+                 {$td->COMMAND => "qpdf --job-json-file=bad-json-$i.json"},
+                 {$td->FILE => "bad-$i-json.out", $td->EXIT_STATUS => 2},
+                 $td->NORMALIZE_NEWLINES);
+}
+
+foreach my $i (@good_json)
+{
+    if ($i eq 'replace-input')
+    {
+        copy("minimal.pdf", 'a.pdf');
+    }
+    $td->runtest("QPDFJob good json: $i",
+                 {$td->COMMAND => "qpdf --job-json-file=job-json-$i.json"},
+                 {$td->STRING => "", $td->EXIT_STATUS => 0},
+                 $td->NORMALIZE_NEWLINES);
+    if ($i =~ m/encrypt-256/)
+    {
+        $td->runtest("check encryption $i",
+                     {$td->COMMAND =>
+                          "qpdf a.pdf --password=u" .
+                          " --job-json-file=job-show-encryption.json"},
+                     {$td->FILE => "job-json-$i.out", $td->EXIT_STATUS => 0},
+                     $td->NORMALIZE_NEWLINES);
+    }
+    else
+    {
+        $td->runtest("check good json $i output",
+                     {$td->FILE => "a.pdf"},
+                     {$td->FILE => "job-json-$i.pdf"});
+    }
+}
+
+
+$td->runtest("QPDFJob json partial",
+             {$td->COMMAND => "test_driver 83 - job-partial.json"},
+             {$td->FILE => "job-partial-json.out", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("QPDFJob API",
+             {$td->COMMAND => "test_driver 84 -"},
+             {$td->FILE => "job-api.out", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("check output",
+             {$td->FILE => "a.pdf"},
+             {$td->FILE => "test84.pdf"});
+$td->runtest("json output from job",
+             {$td->COMMAND => "qpdf --job-json-file=job-json-output.json"},
+             {$td->FILE => "job-json-output.out.json", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+
+$td->runtest("C job API",
+             {$td->COMMAND => "qpdfjob-ctest"},
+             {$td->FILE => "qpdfjob-ctest.out", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+foreach my $i (['a.pdf', 1], ['b.pdf', 2], ['c.pdf', 3])
+{
+    $td->runtest("check output",
+                 {$td->FILE => $i->[0]},
+                 {$td->FILE => "qpdfjob-ctest$i->[1].pdf"});
+}
+my $wide_out = `qpdfjob-ctest wide`;
+$td->runtest("qpdfjob-ctest wide",
+             {$td->STRING => "$?: $wide_out"},
+             {$td->REGEXP => "0: (wide test passed|skipped wide)\n"},
+             $td->NORMALIZE_NEWLINES);
+if ($wide_out =~ m/skipped/)
+{
+    $td->runtest("skipped wide",
+                 {$td->STRING => "yes"},
+                 {$td->STRING => "yes"});
+}
+else
+{
+    $td->runtest("check output",
+                 {$td->FILE => "a.pdf"},
+                 {$td->FILE => "qpdfjob-ctest-wide.pdf"});
+}
+
 show_ntests();
 # ----------
 $td->notify("--- Form Tests ---");
@@ -458,7 +621,7 @@ $td->runtest("compare files",
 show_ntests();
 # ----------
 $td->notify("--- Form XObject, underlay, overlay ---");
-$n_tests += 20;
+$n_tests += 22;
 
 $td->runtest("form xobject creation",
              {$td->COMMAND => "test_driver 55 fxo-red.pdf"},
@@ -531,6 +694,15 @@ $td->runtest("page operations on form xobject",
              {$td->FILE => "page-ops-on-form-xobject.out",
                   $td->EXIT_STATUS => 0},
              $td->NORMALIZE_NEWLINES);
+$td->runtest("overlay on page with no resources",
+             {$td->COMMAND =>
+                  "qpdf --deterministic-id page-with-no-resources.pdf" .
+                  " --overlay minimal.pdf -- a.pdf"},
+             {$td->STRING => "", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("check overlay with no resources output",
+             {$td->FILE => "a.pdf"},
+             {$td->FILE => "overlay-no-resources.pdf"});
 
 show_ntests();
 # ----------
@@ -560,7 +732,7 @@ $td->runtest("list attachments verbose",
 	     {$td->FILE => "test76-list-verbose.out", $td->EXIT_STATUS => 0},
 	     $td->NORMALIZE_NEWLINES);
 $td->runtest("attachments json",
-	     {$td->COMMAND => "qpdf --json --json-key=attachments a.pdf"},
+	     {$td->COMMAND => "qpdf --json=1 --json-key=attachments a.pdf"},
 	     {$td->FILE => "test76-json.out", $td->EXIT_STATUS => 0},
 	     $td->NORMALIZE_NEWLINES);
 $td->runtest("remove attachment (test_driver)",
@@ -611,7 +783,7 @@ $td->runtest("add attachment: bad mod date",
 $td->runtest("add attachment: trailing slash",
 	     {$td->COMMAND => "qpdf minimal.pdf a.pdf" .
                   " --add-attachment --"},
-	     {$td->REGEXP => ".*add attachment: no path specified.*",
+	     {$td->REGEXP => ".*add attachment: no file specified.*",
                   $td->EXIT_STATUS => 2},
 	     $td->NORMALIZE_NEWLINES);
 
@@ -954,7 +1126,7 @@ $td->runtest("check output",
 	     {$td->FILE => "page_api_1-out3.pdf"});
 $td->runtest("duplicate page",
 	     {$td->COMMAND => "test_driver 19 page_api_1.pdf"},
-	     {$td->FILE => "page_api_1.out", $td->EXIT_STATUS => 2},
+	     {$td->FILE => "page_api_1.out", $td->EXIT_STATUS => 0},
 	     $td->NORMALIZE_NEWLINES);
 $td->runtest("remove page we don't have",
 	     {$td->COMMAND => "test_driver 22 page_api_1.pdf"},
@@ -986,7 +1158,7 @@ my @bug_tests = (
     ["106", "zlib data error", 3],
     ["141a", "/W entry size 0", 2],
     ["141b", "/W entry size 0", 2],
-    ["143", "self-referential ostream", 3],
+    ["143", "self-referential ostream", 3, "--preserve-unreferenced"],
     ["146", "very deeply nested array", 2],
     ["147", "previously caused memory error", 2],
     ["148", "free memory on bad flate", 2],
@@ -996,14 +1168,18 @@ my @bug_tests = (
     ["263", "empty xref stream", 2],
     ["335a", "ozz-fuzz-12152", 2],
     ["335b", "ozz-fuzz-14845", 2],
-    ["fuzz-16214", "stream in object stream", 3],
-    # When adding to this list, consider adding to SEED_CORPUS_FILES
+    ["fuzz-16214", "stream in object stream", 3, "--preserve-unreferenced"],
+    # When adding to this list, consider adding to CORPUS_FROM_TEST
     # in fuzz/build.mk and updating the count in fuzz/qtest/fuzz.test.
     );
 $n_tests += scalar(@bug_tests);
 foreach my $d (@bug_tests)
 {
-    my ($n, $description, $exit_status) = @$d;
+    my ($n, $description, $exit_status, $xargs) = @$d;
+    if (! defined $xargs)
+    {
+        $xargs = "";
+    }
     if (-f "issue-$n.obfuscated")
     {
         # Some of the PDF files in the test suite trigger anti-virus
@@ -1025,7 +1201,7 @@ foreach my $d (@bug_tests)
     {
         my $base = (-f "issue-$n.pdf") ? "issue-$n" : "$n";
         $td->runtest($description,
-                     {$td->COMMAND => "qpdf $base.pdf a.pdf"},
+                     {$td->COMMAND => "qpdf $xargs $base.pdf a.pdf"},
                      {$td->FILE => "$base.out",
                           $td->EXIT_STATUS => $exit_status},
                      $td->NORMALIZE_NEWLINES);
@@ -1304,7 +1480,8 @@ $n_tests += 2;
 # that in turn contains an indirect scalar (bug 2974522).
 $td->runtest("unreferenced indirect scalar",
 	     {$td->COMMAND =>
-		  "qpdf --qdf --static-id --object-streams=preserve" .
+		  "qpdf --qdf --static-id --preserve-unreferenced" .
+                  " --object-streams=preserve" .
 		  " unreferenced-indirect-scalar.pdf a.qdf"},
 	     {$td->STRING => "",
 	      $td->EXIT_STATUS => 0},
@@ -1325,7 +1502,8 @@ foreach my $file (qw(short-id long-id))
 {
     $td->runtest("encrypt $file.pdf",
 		 {$td->COMMAND =>
-		      "qpdf --encrypt '' pass 40 -- $file.pdf a.pdf"},
+		      "qpdf --allow-weak-crypto".
+                      " --encrypt '' pass 40 -- $file.pdf a.pdf"},
 		 {$td->STRING => "",
 		  $td->EXIT_STATUS => 0},
 		 $td->NORMALIZE_NEWLINES);
@@ -1414,7 +1592,7 @@ $td->runtest("check version",
 unlink "a.pdf", "b.pdf" or die;
 $td->runtest("C API: min/force versions",
 	     {$td->COMMAND => "qpdf-ctest 14 object-stream.pdf '' a.pdf b.pdf"},
-	     {$td->STRING => "",
+	     {$td->STRING => "C test 14 done\n",
 	      $td->EXIT_STATUS => 0},
 	     $td->NORMALIZE_NEWLINES);
 $td->runtest("C check version 1",
@@ -1750,12 +1928,12 @@ $td->runtest("bounds check linearization data 2",
              {$td->FILE => "linearization-bounds-2.out",
               $td->EXIT_STATUS => 3},
              $td->NORMALIZE_NEWLINES);
-# Throws logic error, not bad_alloc
+# Throws runtime error, not bad_alloc
 $td->runtest("sanity check array size",
              {$td->COMMAND =>
                   "qpdf --check linearization-large-vector-alloc.pdf"},
              {$td->FILE => "linearization-large-vector-alloc.out",
-              $td->EXIT_STATUS => 2},
+              $td->EXIT_STATUS => 3},
              $td->NORMALIZE_NEWLINES);
 
 show_ntests();
@@ -1870,7 +2048,7 @@ $td->runtest("progress report on small file",
 show_ntests();
 # ----------
 $td->notify("--- Type checks ---");
-$n_tests += 4;
+$n_tests += 5;
 # Whenever object-types.pdf is edited, object-types-os.pdf should be
 # regenerated.
 $td->runtest("ensure object-types-os is up-to-date",
@@ -1893,6 +2071,10 @@ $td->runtest("type checks with object streams",
              {$td->COMMAND => "test_driver 42 object-types-os.pdf"},
              {$td->FILE => "object-types-os.out",
               $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("compound type checks",
+             {$td->COMMAND => "test_driver 82 object-types-os.pdf"},
+             {$td->STRING => "test 82 done\n", $td->EXIT_STATUS => 0},
              $td->NORMALIZE_NEWLINES);
 
 # ----------
@@ -2011,7 +2193,7 @@ foreach my $d (
 $td->runtest("newline before endstream (C)",
              {$td->COMMAND =>
                   "qpdf-ctest 22 streams-with-newlines.pdf '' a.pdf"},
-             {$td->STRING => "", $td->EXIT_STATUS => 0},
+             {$td->STRING => "C test 22 done\n", $td->EXIT_STATUS => 0},
              $td->NORMALIZE_NEWLINES);
 $td->runtest("check output",
              {$td->FILE => "a.pdf"},
@@ -2024,7 +2206,8 @@ $td->notify("--- Split Pages ---");
 my @sp_cases = (
     [11, '%d at beginning', '', '%d_split-out.zdf'],
     [11, '%d at end', '--qdf', 'split-out.zdf_%d'],
-    [11, '%d in middle', '--encrypt u o 128 --', 'a-%d-split-out.zdf'],
+    [11, '%d in middle', '--allow-weak-crypto --encrypt u o 128 --',
+     'a-%d-split-out.zdf'],
     [11, 'pdf extension', '', 'split-out.Pdf'],
     [4, 'fallback', '--pages 11-pages.pdf 1-3 minimal.pdf --', 'split-out'],
     [1, 'broken data', '--pages broken-lzw.pdf --', 'split-out.pdf',
@@ -2425,7 +2608,7 @@ foreach my $f (qw(screen print))
 show_ntests();
 # ----------
 $td->notify("--- Copy Annotations ---");
-$n_tests += 35;
+$n_tests += 39;
 
 $td->runtest("complex copy annotations",
              {$td->COMMAND =>
@@ -2508,6 +2691,16 @@ $td->runtest("not keeping any fields",
 $td->runtest("check output",
              {$td->FILE => "a.pdf"},
              {$td->FILE => "kept-no-fields.pdf"});
+$td->runtest("other file first",
+             {$td->COMMAND =>
+                  "qpdf --qdf --no-original-object-ids" .
+                  " --static-id fields-two-pages.pdf" .
+                  " --pages ./fields-two-pages.pdf . 1 -- a.pdf"},
+             {$td->STRING => "", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("check output",
+             {$td->FILE => "a.pdf"},
+             {$td->FILE => "other-file-first.pdf"});
 
 $td->runtest("field conflict resolution",
              {$td->COMMAND =>
@@ -2572,6 +2765,17 @@ $td->runtest("check output",
              {$td->FILE => "a.pdf"},
              {$td->FILE => "field-parse-errors-out.pdf"});
 
+$td->runtest("Direct DR and annotations",
+             {$td->COMMAND =>
+                  "qpdf direct-dr.pdf --split-pages" .
+                  " --qdf --static-id --no-original-object-ids" .
+                  " split-out.pdf"},
+             {$td->STRING => "", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("check output",
+             {$td->FILE => "split-out-1.pdf"},
+             {$td->FILE => "direct-dr-out.pdf"});
+
 show_ntests();
 # ----------
 $td->notify("--- Page Tree Issues ---");
@@ -2616,7 +2820,7 @@ $td->runtest("show direct pages",
 foreach my $f (qw(page_api_2 direct-pages))
 {
     $td->runtest("json for $f",
-                 {$td->COMMAND => "qpdf --json $f.pdf"},
+                 {$td->COMMAND => "qpdf --json=latest $f.pdf"},
                  {$td->FILE => "$f-json.out", $td->EXIT_STATUS => 0},
                  $td->NORMALIZE_NEWLINES);
 }
@@ -2664,6 +2868,7 @@ $td->runtest("check output",
 $td->runtest("avoid respecification of password",
              {$td->COMMAND =>
                   "qpdf --empty a.pdf --copy-encryption=20-pages.pdf" .
+                  " --allow-weak-crypto" .
                   " --encryption-file-password=user" .
                   " --pages 20-pages.pdf 1,z -- --static-id"},
              {$td->STRING => "", $td->EXIT_STATUS => 0});
@@ -2888,7 +3093,7 @@ foreach my $l (qw(none generalized specialized all))
 # C API
 $td->runtest("image-streams: C",
              {$td->COMMAND => "qpdf-ctest 20 image-streams.pdf '' a.pdf"},
-             {$td->STRING => "", $td->EXIT_STATUS => 0},
+             {$td->STRING => "C test 20 done\n", $td->EXIT_STATUS => 0},
              $td->NORMALIZE_NEWLINES);
 $td->runtest("check image-streams: C",
              {$td->COMMAND => "test_driver 39 a.pdf"},
@@ -2982,7 +3187,8 @@ $td->runtest("check output",
 $td->runtest("keep unused objects (C)",
 	     {$td->COMMAND =>
                   "qpdf-ctest 21 unreferenced-objects.pdf '' a.pdf"},
-	     {$td->STRING => "", $td->EXIT_STATUS => 0});
+	     {$td->STRING => "C test 21 done\n", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
 $td->runtest("check output",
 	     {$td->FILE => "a.pdf"},
 	     {$td->FILE => "unreferenced-preserved.pdf"});
@@ -3139,7 +3345,7 @@ $td->runtest("integer type checks",
 show_ntests();
 # ----------
 $td->notify("--- Recovery Tests ---");
-$n_tests += @badfiles + 9;
+$n_tests += @badfiles + 11;
 
 # Recovery tests.  These are mostly after-the-fact -- when recovery
 # was implemented, some degree of recovery was possible on many of the
@@ -3214,10 +3420,19 @@ $td->runtest("xref loop with append",
              {$td->FILE => "append-xref-loop.out",
               $td->EXIT_STATUS => 3},
              $td->NORMALIZE_NEWLINES);
-
 $td->runtest("check output",
 	     {$td->FILE => "a.pdf"},
 	     {$td->FILE => "append-xref-loop-fixed.pdf"});
+
+$td->runtest("endobj not at newline",
+             {$td->COMMAND =>
+                  "qpdf --deterministic-id endobj-at-eol.pdf a.pdf"},
+             {$td->FILE => "endobj-at-eol.out",
+              $td->EXIT_STATUS => 3},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("check output",
+	     {$td->FILE => "a.pdf"},
+	     {$td->FILE => "endobj-at-eol-fixed.pdf"});
 
 show_ntests();
 # ----------
@@ -3343,7 +3558,8 @@ foreach my $d (@capi)
     $outfile = "c-$outfile.pdf";
     $td->runtest($description,
 		 {$td->COMMAND => "qpdf-ctest $n hybrid-xref.pdf '' a.pdf"},
-		 {$td->STRING => "", $td->EXIT_STATUS => 0});
+		 {$td->STRING => "C test $n done\n", $td->EXIT_STATUS => 0},
+                 $td->NORMALIZE_NEWLINES);
     $td->runtest("check $description",
 		 {$td->FILE => "a.pdf"},
 		 {$td->FILE => $outfile});
@@ -3393,7 +3609,7 @@ foreach my $d ('nn', 'ny', 'yn', 'yy')
 
 $td->runtest("deterministic ID with encryption",
              {$td->COMMAND => "qpdf -deterministic-id encrypted-with-images.pdf a.pdf"},
-             {$td->STRING => "INTERNAL ERROR: QPDFWriter::generateID" .
+             {$td->STRING => "qpdf: INTERNAL ERROR: QPDFWriter::generateID" .
                   " has no data for deterministic ID." .
                   "  This may happen if deterministic ID and" .
                   " file encryption are requested together.\n",
@@ -3402,8 +3618,9 @@ $td->runtest("deterministic ID with encryption",
 $td->runtest("deterministic ID (C API)",
              {$td->COMMAND =>
                   "qpdf-ctest 19 deterministic-id-in.pdf '' a.pdf"},
-             {$td->STRING => "",
-              $td->EXIT_STATUS => 0});
+             {$td->STRING => "C test 19 done\n",
+                  $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
 $td->runtest("compare files",
              {$td->FILE => "a.pdf"},
              {$td->FILE => "deterministic-id-nn.pdf"});
@@ -3420,7 +3637,7 @@ for (my $n = 16; $n <= 19; ++$n)
 		       '-object-streams=preserve',
 		       '-object-streams=generate')
     {
-	foreach my $qdf ('-qdf', '', '-encrypt "" x 128 --')
+	foreach my $qdf ('-qdf', '', '-allow-weak-crypto -encrypt "" x 128 --')
 	{
 	    # 4 tests + 1 compare_pdfs * 36 cases
 	    # 2 additional tests * 12 cases
@@ -3463,7 +3680,7 @@ for (my $n = 16; $n <= 19; ++$n)
 show_ntests();
 # ----------
 $td->notify("--- Specific File Tests ---");
-$n_tests += 9;
+$n_tests += 11;
 
 # Special PDF files that caused problems at some point
 
@@ -3502,6 +3719,15 @@ $td->runtest("pages points to page",
 $td->runtest("check output",
 	     {$td->FILE => "a.pdf"},
 	     {$td->FILE => "pages-is-page-out.pdf"});
+$td->runtest("Acroform /DR with indirect subkey",
+             {$td->COMMAND =>
+                  "qpdf --static-id --empty" .
+                  " --pages dr-with-indirect-item.pdf -- a.pdf"},
+             {$td->STRING => "", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("check output",
+	     {$td->FILE => "a.pdf"},
+	     {$td->FILE => "dr-with-indirect-item-out.pdf"});
 
 show_ntests();
 # ----------
@@ -3644,19 +3870,22 @@ foreach my $f (qw(compressed-metadata.pdf enc-base.pdf))
 	check_metadata("a.pdf", 0, 1);
 	$td->runtest("encrypt normally",
 		     {$td->COMMAND =>
-			  "qpdf --encrypt '' o 128 -- a.pdf b.pdf"},
+			  "qpdf --allow-weak-crypto" .
+                          " --encrypt '' o 128 -- a.pdf b.pdf"},
 		     {$td->STRING => "", $td->EXIT_STATUS => 0});
 	check_metadata("b.pdf", 1, 0);
 	unlink "b.pdf";
 	$td->runtest("encrypt V4",
 		     {$td->COMMAND =>
-			  "qpdf --encrypt '' o 128 --force-V4 -- a.pdf b.pdf"},
+			  "qpdf --allow-weak-crypto" .
+                          " --encrypt '' o 128 --force-V4 -- a.pdf b.pdf"},
 		     {$td->STRING => "", $td->EXIT_STATUS => 0});
 	check_metadata("b.pdf", 1, 0);
 	unlink "b.pdf";
 	$td->runtest("encrypt with cleartext metadata",
 		     {$td->COMMAND =>
-			  "qpdf --encrypt '' o 128 --cleartext-metadata --" .
+			  "qpdf --allow-weak-crypto" .
+                          " --encrypt '' o 128 --cleartext-metadata --" .
 			  " a.pdf b.pdf"},
 		     {$td->STRING => "", $td->EXIT_STATUS => 0});
 	check_metadata("b.pdf", 1, 1);
@@ -3678,6 +3907,31 @@ foreach my $f (qw(compressed-metadata.pdf enc-base.pdf))
 	unlink "b.pdf", "c.pdf";
     }
 }
+
+show_ntests();
+# ----------
+$td->notify("--- Weak Cryptography ---");
+$n_tests += 4;
+$td->runtest("256-bit: no warning",
+             {$td->COMMAND => 'qpdf --encrypt "" "" 256 -- minimal.pdf a.pdf'},
+             {$td->STRING => "", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("128-bit with AES: no warning",
+             {$td->COMMAND => 'qpdf --encrypt "" "" 128 --use-aes=y --' .
+                  ' minimal.pdf a.pdf'},
+             {$td->STRING => "", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+# Note: we intentionally have exit status 0 for this warning.
+$td->runtest("128-bit without AES: warning",
+             {$td->COMMAND => 'qpdf --encrypt "" "" 128 -- minimal.pdf a.pdf'},
+             {$td->REGEXP => "Pass --allow-weak-crypto to suppress",
+                  $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("40-bit: warning",
+             {$td->COMMAND => 'qpdf --encrypt "" "" 40 -- minimal.pdf a.pdf'},
+             {$td->REGEXP => "Pass --allow-weak-crypto to suppress",
+                  $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
 
 show_ntests();
 # ----------
@@ -4056,7 +4310,8 @@ foreach my $d (@encrypted_files)
         $enc_json =~ s/---opm---/$opm/;
         $enc_json =~ s/---upm---/$upm/;
 
-	my $eflags = "-encrypt \"$upass\" \"$opass\" $bits $xeflags --";
+	my $eflags = "--allow-weak-crypto" .
+            " -encrypt \"$upass\" \"$opass\" $bits $xeflags --";
         if (($opass eq "") && ($bits == 256))
         {
             $eflags =~ s/--$/--allow-insecure --/;
@@ -4132,8 +4387,9 @@ $td->runtest("non-encrypted",
 $td->runtest("invalid password",
 	     {$td->COMMAND => "qpdf -qdf --password=quack" .
 		  " enc-R2,V1,U=view,O=view.pdf a.qdf"},
-	     {$td->STRING => "enc-R2,V1,U=view,O=view.pdf: invalid password\n",
-	      $td->EXIT_STATUS => 2},
+	     {$td->STRING =>
+                  "qpdf: enc-R2,V1,U=view,O=view.pdf: invalid password\n",
+                  $td->EXIT_STATUS => 2},
 	     $td->NORMALIZE_NEWLINES);
 $td->runtest("C API: invalid password",
 	     {$td->COMMAND =>
@@ -4167,7 +4423,8 @@ foreach my $d (@cenc)
     my $check_outfile = "c-$outfile.out";
     $td->runtest("C API encryption: $description",
 		 {$td->COMMAND => "qpdf-ctest $n $infile $pass a.pdf"},
-		 {$td->STRING => $output, $td->EXIT_STATUS => 0},
+		 {$td->STRING => $output . "C test $n done\n",
+                      $td->EXIT_STATUS => 0},
 		 $td->NORMALIZE_NEWLINES);
     if (-f $pdf_outfile)
     {
@@ -4319,7 +4576,7 @@ foreach my $d (['--force-V4', 'V4'],
     my ($args, $out) = @$d;
     $td->runtest("encrypt $args",
 		 {$td->COMMAND => "qpdf --static-aes-iv --static-id" .
-		      " --encrypt '' '' 128 $args --" .
+		      " --allow-weak-crypto --encrypt '' '' 128 $args --" .
                       " enc-base.pdf a.pdf"},
 		 {$td->STRING => "", $td->EXIT_STATUS => 0});
     $td->runtest("check output",
@@ -4599,12 +4856,13 @@ foreach my $d (@unicode_pw_cases)
     my $exp = '';
     if (ref($decode_cases) ne 'ARRAY')
     {
-        $exp = $decode_cases;
+        $exp = "qpdf: $decode_cases";
         $decode_cases = [];
     }
     $td->runtest("encode $bits, $pw, $w_encoding",
                  {$td->COMMAND =>
                       "qpdf $xargs --static-id --static-aes-iv" .
+                      " --allow-weak-crypto" .
                       " --encrypt $upass o $bits -- minimal.pdf a.pdf"},
                  {$td->STRING => $exp, $td->EXIT_STATUS => ($exp ? 2 : 0)},
                  $td->NORMALIZE_NEWLINES);
@@ -4620,7 +4878,7 @@ foreach my $d (@unicode_pw_cases)
         $r_output .= "trying other\n" if $tried_others;
         if ($xfail)
         {
-            $r_output .= "a.pdf: invalid password\n";
+            $r_output .= "qpdf: a.pdf: invalid password\n";
         }
         else
         {
@@ -4646,7 +4904,8 @@ $n_tests += 5;
 
 $td->runtest("bytes fallback warning",
              {$td->COMMAND =>
-                  "qpdf --encrypt \@password-bare-complex-utf8 o 128 --" .
+                  "qpdf --allow-weak-crypto" .
+                  " --encrypt \@password-bare-complex-utf8 o 128 --" .
                   " minimal.pdf a.pdf"},
              {$td->FILE => "bytes-fallback.out", $td->EXIT_STATUS => 0},
              $td->NORMALIZE_NEWLINES);
@@ -4702,18 +4961,121 @@ foreach my $i (@c_check_types)
 show_ntests();
 # ----------
 $td->notify("--- C API Object Handle ---");
-$n_tests += scalar(@c_check_types);
+$n_tests += 13;
 
 $td->runtest("C check object handles",
              {$td->COMMAND => "qpdf-ctest 24 minimal.pdf '' a.pdf"},
              {$td->FILE => "c-object-handles.out",
                   $td->EXIT_STATUS => 0},
              $td->NORMALIZE_NEWLINES);
-
 $td->runtest("check output",
 	     {$td->FILE => 'a.pdf'},
 	     {$td->FILE => 'c-object-handles-out.pdf'});
 
+$td->runtest("C check object handle creation",
+             {$td->COMMAND => "qpdf-ctest 25 minimal.pdf '' a.pdf"},
+             {$td->STRING => "C test 25 done\n", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("check output",
+	     {$td->FILE => 'a.pdf'},
+	     {$td->FILE => 'c-object-handle-creation-out.pdf'});
+
+$td->runtest("C indirect objects",
+             {$td->COMMAND => "qpdf-ctest 33 minimal.pdf '' a.pdf"},
+             {$td->STRING => "C test 33 done\n", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("check output",
+	     {$td->FILE => 'a.pdf'},
+	     {$td->FILE => 'c-indirect-objects-out.pdf'});
+
+$td->runtest("C uninitialized objects",
+             {$td->COMMAND => "qpdf-ctest 26 '' '' ''"},
+             {$td->FILE => "c-oh-uninitialized-objects.out",
+                  $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("C string with embedded null",
+             {$td->COMMAND => "qpdf-ctest 27 '' '' ''"},
+             {$td->STRING => "C test 27 done\n", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("C wrap and clone objects",
+             {$td->COMMAND => "qpdf-ctest 28 minimal.pdf '' ''"},
+             {$td->STRING => "C test 28 done\n", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("C object handle errors",
+             {$td->COMMAND => "qpdf-ctest 29 minimal.pdf '' ''"},
+             {$td->FILE => "c-oh-errors.out", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("C unhandled error warning",
+             {$td->COMMAND => "qpdf-ctest 30 bad1.pdf '' ''"},
+             {$td->FILE => "c-unhandled-error.out", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("C type mismatch warning",
+             {$td->COMMAND => "qpdf-ctest 31 minimal.pdf '' ''"},
+             {$td->FILE => "c-type-warning.out", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("C get object by ID",
+             {$td->COMMAND => "qpdf-ctest 32 minimal.pdf '' ''"},
+             {$td->STRING => "C test 32 done\n", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+
+show_ntests();
+# ----------
+$td->notify("--- C API Page Functions ---");
+$n_tests += 5;
+
+$td->runtest("C page normal",
+             {$td->COMMAND =>
+                  "qpdf-ctest 34 11-pages.pdf '' a.pdf minimal.pdf"},
+             {$td->STRING => "C test 34 done\n", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("check output",
+	     {$td->FILE => 'a.pdf'},
+	     {$td->FILE => 'c-pages.pdf'});
+
+$td->runtest("C page errors",
+             {$td->COMMAND =>
+                  "qpdf-ctest 35 11-pages.pdf '' ''"},
+             {$td->FILE => "c-page-errors.out", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("C inherited page resources",
+             {$td->COMMAND =>
+                  "qpdf-ctest 36 inherited-rotate.pdf '' ''"},
+             {$td->STRING => "C test 36 done\n", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("C pages cache",
+             {$td->COMMAND =>
+                  "qpdf-ctest 37 11-pages.pdf '' ''"},
+             {$td->STRING => "C test 37 done\n", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+
+show_ntests();
+# ----------
+$td->notify("--- C API Stream Functions ---");
+$n_tests += 5;
+
+$td->runtest("C read streams",
+             {$td->COMMAND =>
+                  "qpdf-ctest 38 11-pages.pdf '' ''"},
+             {$td->FILE => "c-get-stream.out", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+
+$td->runtest("C foreign object",
+             {$td->COMMAND =>
+                  "qpdf-ctest 39 11-pages.pdf '' a.pdf minimal.pdf"},
+             {$td->STRING => "C test 39 done\n", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("check output",
+	     {$td->FILE => 'a.pdf'},
+	     {$td->FILE => 'c-foreign.pdf'});
+
+$td->runtest("C new stream",
+             {$td->COMMAND =>
+                  "qpdf-ctest 40 minimal.pdf '' a.pdf"},
+             {$td->STRING => "C test 40 done\n", $td->EXIT_STATUS => 0},
+             $td->NORMALIZE_NEWLINES);
+$td->runtest("check output",
+	     {$td->FILE => 'a.pdf'},
+	     {$td->FILE => 'c-new-stream.pdf'});
 show_ntests();
 # ----------
 $td->notify("--- Content Preservation Tests ---");
@@ -4742,9 +5104,9 @@ my @flags = (["-qdf",						# 1
 	      "decrypted"],
 	     ["-linearize",					# 9
 	      "linearized"],
-	     ["-encrypt \"\" owner 128 --",			# 10
+	     ["-allow-weak-crypto -encrypt \"\" owner 128 --",  # 10
 	      "encrypted"],
-	     ["-linearize -encrypt \"\" o 128 --",		# 11
+	     ["-linearize -allow-weak-crypto -encrypt \"\" o 128 --", # 11
 	      "linearized and encrypted"],
 	     ["",						# 12
 	      "no arguments"],
@@ -4913,9 +5275,15 @@ $n_tests += 2;
 $n_tests += 12;
 foreach my $i (qw(40 128 256))
 {
+    my $x = "";
+    if ($i < 256)
+    {
+        $x = "--allow-weak-crypto";
+    }
     $td->runtest("encrypt $i",
                  {$td->COMMAND =>
-                      "qpdf --encrypt '' o $i -- digitally-signed.pdf a.pdf"},
+                      "qpdf $x --encrypt '' o $i --" .
+                      " digitally-signed.pdf a.pdf"},
                  {$td->STRING => "",
                       $td->EXIT_STATUS => 0});
     $td->runtest("find desired contents (encrypt $i)",
@@ -4938,9 +5306,15 @@ foreach my $i (qw(40 128 256))
 $n_tests += 15;
 foreach my $i (qw(40 128 256))
 {
+    my $x = "";
+    if ($i < 256)
+    {
+        $x = "--allow-weak-crypto";
+    }
     $td->runtest("non sig dict encrypt $i",
                  {$td->COMMAND =>
-                      "qpdf --encrypt '' o $i -- comment-annotation.pdf a.pdf"},
+                      "qpdf $x --encrypt '' o $i --" .
+                      " comment-annotation.pdf a.pdf"},
                  {$td->STRING => "",
                       $td->EXIT_STATUS => 0});
     $td->runtest("plain text not found due to encryption (non sig dict encrypt $i)",
@@ -5165,6 +5539,7 @@ for (my $large = 0; $large < $nlarge; ++$large)
                  $td->NORMALIZE_NEWLINES);
     unlink $file;
 }
+show_ntests();
 # ----------
 
 cleanup();
@@ -5193,34 +5568,6 @@ sub show_ntests
     # Calling cleanup here helps to ensure that sections of the test
     # suite are isolated.
     cleanup();
-}
-
-sub bash_completion
-{
-    my ($line, $point) = @_;
-    if (! defined $point)
-    {
-        $point = length($line);
-    }
-    my $before_point = substr($line, 0, $point);
-    $before_point =~ m/^(.*)([ =])([^= ]*)$/ or die;
-    my ($first, $sep, $cur) = ($1, $2, $3);
-    my $prev = ($sep eq '=' ? $sep : $first);
-    $prev =~ s/.* (\S+)$/$1/;
-    my $this = $first;
-    $this =~ s/(\S+)\s.*/$1/;
-    ['env', "COMP_LINE=$line", "COMP_POINT=$point",
-     "qpdf", $this, $cur, $prev];
-}
-
-sub zsh_completion
-{
-    my ($line, $point) = @_;
-    if (! defined $point)
-    {
-        $point = length($line);
-    }
-    ['env', "COMP_LINE=$line", "COMP_POINT=$point", "qpdf"];
 }
 
 sub check_pdf

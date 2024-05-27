@@ -35,10 +35,8 @@ class SF_Crypt: public QPDFStreamFilter
         for (auto const& key: decode_parms.getKeys())
         {
             if (((key == "/Type") || (key == "/Name")) &&
-                (decode_parms.getKey("/Type").isNull() ||
-                 (decode_parms.getKey("/Type").isName() &&
-                  (decode_parms.getKey("/Type").getName() ==
-                   "/CryptFilterDecodeParms"))))
+                ((! decode_parms.hasKey("/Type")) || 
+                 decode_parms.isDictionaryOfType("/CryptFilterDecodeParms")))
             {
                 // we handle this in decryptStream
             }
@@ -502,6 +500,14 @@ QPDF_Stream::pipeStreamData(Pipeline* pipeline, bool* filterp,
             if (decode_pipeline)
             {
                 pipeline = decode_pipeline;
+            }
+            Pl_Flate* flate = dynamic_cast<Pl_Flate*>(pipeline);
+            if (flate != nullptr)
+            {
+                flate->setWarnCallback([this](char const* msg, int code) {
+                    warn(QPDFExc(qpdf_e_damaged_pdf, qpdf->getFilename(),
+                                 "", this->offset, msg));
+                });
             }
 	}
     }

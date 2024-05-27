@@ -22,13 +22,18 @@
 #ifndef JSON_HH
 #define JSON_HH
 
-// This is a simple JSON serializer, primarily designed for
-// serializing QPDF Objects as JSON. JSON objects contain their data
-// as smart pointers. One JSON object is added to another, this
-// pointer is copied. This means you can create temporary JSON objects
-// on the stack, add them to other objects, and let them go out of
-// scope safely. It also means that if the json JSON object is added
-// in more than one place, all copies share underlying data.
+// This is a simple JSON serializer and parser, primarily designed for
+// serializing QPDF Objects as JSON. While it may work as a
+// general-purpose JSON parser/serializer, there are better options.
+// JSON objects contain their data as smart pointers. One JSON object
+// is added to another, this pointer is copied. This means you can
+// create temporary JSON objects on the stack, add them to other
+// objects, and let them go out of scope safely. It also means that if
+// the json JSON object is added in more than one place, all copies
+// share underlying data. This makes them similar in structure and
+// behavior to QPDFObjectHandle and may feel natural within the QPDF
+// codebase, but it is also a good reason not to use this as a
+// general-purpose JSON package.
 
 #include <qpdf/DLL.h>
 #include <qpdf/PointerHolder.hh>
@@ -36,6 +41,7 @@
 #include <map>
 #include <vector>
 #include <list>
+#include <functional>
 
 class JSON
 {
@@ -69,6 +75,30 @@ class JSON
     QPDF_DLL
     static JSON makeNull();
 
+    QPDF_DLL
+    bool isArray() const;
+
+    QPDF_DLL
+    bool isDictionary() const;
+
+    // Accessors. Accessor behavior:
+    //
+    // - If argument is wrong type, including null, return false
+    // - If argument is right type, return true and initialize the value
+    QPDF_DLL
+    bool getString(std::string& utf8) const;
+    QPDF_DLL
+    bool getNumber(std::string& value) const;
+    QPDF_DLL
+    bool getBool(bool& value) const;
+    QPDF_DLL
+    bool isNull() const;
+    QPDF_DLL
+    bool forEachDictItem(
+        std::function<void(std::string const& key, JSON value)> fn) const;
+    QPDF_DLL
+    bool forEachArrayItem(std::function<void(JSON value)> fn) const;
+
     // Check this JSON object against a "schema". This is not a schema
     // according to any standard. It's just a template of what the
     // JSON is supposed to contain. The checking does the following:
@@ -77,20 +107,42 @@ class JSON
     //     single-element arrays, and strings only.
     //   * Recursively walk the schema
     //   * If the current value is a dictionary, this object must have
-    //     a dictionary in the same place with the same keys
+    //     a dictionary in the same place with the same keys. If flags
+    //     contains f_optional, a key in the schema does not have to
+    //     be present in the object. Otherwise, all keys have to be
+    //     present. Any key in the object must be present in the
+    //     schema.
     //   * If the current value is an array, this object must have an
     //     array in the same place. The schema's array must contain a
     //     single element, which is used as a schema to validate each
     //     element of this object's corresponding array.
-    //   * Otherwise, the value is ignored.
+    //   * Otherwise, the value must be a string whose value is a
+    //     description of the object's corresponding value, which may
+    //     have any type.
     //
     // QPDF's JSON output conforms to certain strict compatibility
     // rules as discussed in the manual. The idea is that a JSON
     // structure created manually in qpdf.cc doubles as both JSON help
     // information and a schema for validating the JSON that qpdf
     // generates. Any discrepancies are a bug in qpdf.
+    //
+    // Flags is a bitwise or of values from check_flags_e.
+    enum check_flags_e {
+        f_none = 0,
+        f_optional = 1 << 0,
+    };
+    QPDF_DLL
+    bool checkSchema(JSON schema, unsigned long flags,
+                     std::list<std::string>& errors);
+
+    // Same as passing 0 for flags
     QPDF_DLL
     bool checkSchema(JSON schema, std::list<std::string>& errors);
+
+
+    // Create a JSON object from a string.
+    QPDF_DLL
+    static JSON parse(std::string const&);
 
   private:
     static std::string encode_string(std::string const& utf8);
@@ -117,6 +169,7 @@ class JSON
         JSON_string(std::string const& utf8);
         virtual ~JSON_string();
         virtual std::string unparse(size_t depth) const;
+        std::string utf8;
         std::string encoded;
     };
     struct JSON_number: public JSON_value
@@ -145,6 +198,7 @@ class JSON
 
     static bool
     checkSchemaInternal(JSON_value* this_v, JSON_value* sch_v,
+                        unsigned long flags,
                         std::list<std::string>& errors,
                         std::string prefix);
 

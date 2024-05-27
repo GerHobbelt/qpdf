@@ -1,4 +1,268 @@
+2022-01-31  Jay Berkenbilt  <ejb@ql.org>
+
+	* Have --json-help just output the JSON object, leaving a
+	description to --help and the manual.
+
+	* Allow optional version number or "latest" as parameter to
+	--json, allowing for future specification of json version.
+
+2022-01-28  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add QPDFUsage exception, which is thrown by JSONHandler,
+	QPDFArgParser, and QPDFJob to indicate command-line usage or job
+	configuration errors.
+
+2022-01-22  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add QUtil::make_shared_cstr to return a std::shared_ptr<char>
+	instead of a char* like QUtil::copy_string
+
+	* JSON: for (qpdf-specific, not official) "schema" checking, add
+	the ability to treat missing fields as optional. Also ensure that
+	values in the schema are dictionary, array, or string.
+
+	* Add convenience methods isNameAndEquals and isDictionaryOfType
+	to QPDFObjectHandle with corresponding functions added to the C
+	API. Thanks to m-holger for the contribution.
+
+2022-01-19  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add a JSONHandler class that allows sax-like, recursive handling
+	of JSON objects.
+
+2022-01-17  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add JSON::parse. Now qpdf's JSON class implements a
+	general-purpose JSON parser and serializer, but there are better
+	options for general use. This is really designed for qpdf's
+	internal use and is set up to be compatible with qpdf's existing
+	API and to hook into a planned JSON-based API to the QPDFJob
+	class.
+
+	* Add isDictionary and isArray to JSON
+
+2022-01-11  Jay Berkenbilt  <ejb@ql.org>
+
+	* Bug fix: add missing characters from PDF doc encoding.
+	Fixes #606.
+
+2021-12-29  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add method QUtil::file_can_be_opened
+
+2021-12-21  Jay Berkenbilt  <ejb@ql.org>
+
+	* 10.5.0: release
+
+	* Add documentation link to top-level README
+
+	* Discontinue inclusion of the pre-built documentation in the
+	source distribution. Consult the packaging documentation in the
+	manual for details. The file README-doc.txt is installed in the
+	doc directory by default and contains information that users will
+	need to know to find the documentation.
+
+2021-12-19  Jay Berkenbilt  <ejb@ql.org>
+
+	* C API: clarify documentation around string lengths. Add two new
+	methods: qpdf_oh_get_binary_string_value and
+	qpdf_oh_new_binary_string to make the need to handle the length
+	and data separate in more explicit in cases in which the string
+	data may contain embedded null characters.
+
+2021-12-17  Jay Berkenbilt  <ejb@ql.org>
+
+	* C API: simplify error handling for uncaught errors (never in a
+	released version) and clarify documentation in qpdf-c.h around
+	error handling. See qpdf-c.h for details, including how to check
+	for errors and the new function qpdf_silence_errors.
+
+	* C API: expose getTypeCode and getTypeName from QPDFObjectHandle.
+	Fixes #597.
+
+	* C API: add functions for working with stream data. Search for
+	"STREAM FUNCTIONS" in qpdf-c.h. Fixes #596.
+
+	* QPDFObjectHandle object types have been moved from
+	QPDFObject::object_type_e to qpdf_object_type_e (defined in
+	Constants.h). Old values are available for backward compatibility.
+
+	* Add Pl_Buffer::getMallocBuffer() to initialize a buffer with
+	malloc in support of the C API
+
+2021-12-16  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add several functions to the C API for working with pages. C
+	wrappers around several of the "Legacy" page operations from
+	QPDFObjectHandle.hh have been added. See "PAGE FUNCTIONS" in
+	qpdf-c.h for details. Fixes #594.
+
+2021-12-12  Jay Berkenbilt  <ejb@ql.org>
+
+	* Convert documentation from docbook to reStructuredText/Sphinx.
+
+2021-12-10  Jay Berkenbilt  <ejb@ql.org>
+
+	* Handle bitstream overflow errors more gracefully. Fixes #581.
+
+	* C API: add qpdf_get_object_by_id, qpdf_make_indirect_object, and
+	qpdf_replace_object, exposing the corresponding methods in QPDF
+	and QPDFObjectHandle. Fixes #588.
+
+	* Add missing QPDF_DLL to QPDFObjectHandle::addTokenFilter so that
+	it is actually accessible as part of the public interface as
+	intended. Fixes #580.
+
+	* C API: Overhaul how errors are handle the C API's object handle
+	interfaces. Clarify documentation regarding object accessors and
+	how type errors and warnings are handled. Many cases that used to
+	crash code that used the C API can now be trapped and will be
+	written stderr if not trapped. See qpdf-c.h for details.
+
+	* C API: Add qpdf_oh_new_uninitialized to explicitly create
+	uninitialized object handles.
+
+	* Add new error code qpdf_e_object that is used for exceptions
+	(including warnings) that are caused by using QPDFObjectHandle
+	methods on object handles of the wrong type.
+
+2021-12-02  Jay Berkenbilt  <ejb@ql.org>
+
+	* C API: Add qpdf_oh_is_initialized.
+
+	* C API: Add qpdf_get_last_string_length to return the length of
+	the last string returned. This is necessary in order to fully
+	retrieve values of strings that may contain embedded null characters.
+
+	* C API: Add qpdf_oh_new_object to clone an object handle. Change
+	implemented by m-holger in #587.
+
+2021-11-16  Jay Berkenbilt  <ejb@ql.org>
+
+	* 10.4.0: release
+
+2021-11-10  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add --allow-weak-crypto option to suppress warnings about use of
+	weak cryptographic algorithms. Update documentation around this
+	issue. Fixes #358.
+
+2021-11-07  Jay Berkenbilt  <ejb@ql.org>
+
+	* Relax xref recovery logic a bit so that files whose objects are
+	either missing endobj or have endobj at other than the beginning
+	of a line can still be recovered. Fixes #573.
+
+2021-11-04  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add support for OpenSSL 3. Fixes #568.
+
+	The OpenSSL version is detected at compile-time. If you want to
+	build with OpenSSL 3 on a system that has OpenSSL 1 installed, you
+	can run configure like this (or similar to this depending on how
+	you installed openssl3):
+
+	pc_openssl_CFLAGS=-I/path/to/openssl3/include \
+	pc_openssl_LIBS='-L/path/to/openssl3/lib64 -lssl -lcrypto' \
+	./configure
+
+	where /path/to/openssl3 is wherever your OpenSSL 3 distribution is
+	installed. You may also need to set the LD_LIBRARY_PATH
+	environment variable if it's not installed in a standard location.
+
+	* Add range check in QPDFNumberTreeObjectHelper (fuzz issue 37740).
+
+	* Add QIntC::range_check_subtract to do range checking on
+	subtraction, which has different boundary conditions from
+	addition.
+
+	* Bug fix: fix crash that could occur under certain conditions
+	when using --pages with files that had form fields. Fixes #548.
+
+	* Add an extra check to the library to detect when foreign objects
+	are inserted directly (instead of using
+	<function>QPDF::copyForeignObject</function>) at the time of
+	insertion rather than when the file is written. Catching the error
+	sooner makes it much easier to locate the incorrect code.
+
+2021-11-03  Jay Berkenbilt  <ejb@ql.org>
+
+	* Bug fix: make overlay/underlay work on a page with no resource
+	dictionary. Fixes #527.
+
+2021-11-02  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add QPDF::findPage to the public API. This is primarily to help
+	improve the efficiency of code that wraps the qpdf library, such
+	as pikepdf. Fixes #516.
+
+	* zlib-flate: warn and exit with code 3 when there is corrupted
+	input data even when decompression is possible. We do this in the
+	zlib-flate CLI so that it can be more reliably used to test the
+	validity of zlib streams, but we don't warn by default in qpdf
+	itself because PDF files in the wild exist with this problem and
+	other readers appear to tolerate it. There is a PDF in the qpdf
+	test suite (form-filled-by-acrobat.pdf) that was written by a
+	version of Adobe Acrobat that exhibits this problem. Fixes #562.
+
+	* Add Pl_Flate::setWarnCallback to make it possible to be notified
+	of data errors that are recoverable but still indicate invalid
+	data.
+
+	* Improve error reporting when someone forgets the -- after
+	--pages. Fixes #555.
+
+2021-05-12  Jay Berkenbilt  <ejb@ql.org>
+
+	* Bug fix: ensure we don't overflow any string bounds while
+	handling completion, even when we are given bogus input values.
+	Fixes #441.
+
+2021-05-09  Jay Berkenbilt  <ejb@ql.org>
+
+	* Improve performance of preservation of object streams by
+	avoiding unnecessary traversal of objects when there are no object
+	streams.
+
+2021-05-08  Jay Berkenbilt  <ejb@ql.org>
+
+	* 10.3.2: release
+
+	* Fix problem that caused the generated manual from being included
+	in the Windows distributions. Fixes #521.
+
+	* Fix 11-year-old bug of leaving unreferenced objects in preserved
+	object streams. Fixes #520.
+
+2021-04-17  Jay Berkenbilt  <ejb@ql.org>
+
+	* Portability fix: use tm_gmtoff rather than global timezone
+	variable if available to get timezone offset. This fixes
+	compilation on BSD and also results in a daylight saving
+	time-aware offset for Linux or other GNU systems. Fixes #515.
+
+2021-04-05  Jay Berkenbilt  <ejb@ql.org>
+
+	* When adding a page, if the page already exists, make a shallow
+	copy of the page instead of throwing an exception. This makes the
+	behavior of adding a page from the library consistent with what
+	the CLI does and also with what the library does if it starts with
+	a file that already has a duplicated page. Note that this means
+	that, in some cases, the page you pass to addPage or addPageAt
+	(either in QPDF or QPDFPageDocumentHelper) will not be the same
+	object that actually gets added. (This has actually always been
+	the case.) That means that, if you are going to do subsequent
+	modification on the page, you should retrieve it again.
+
+2021-03-11  Jay Berkenbilt  <ejb@ql.org>
+
+	* 10.3.1: release
+
+	* Bug fix: allow /DR to be direct in /AcroForm
+
 2021-03-04  Jay Berkenbilt  <ejb@ql.org>
+
+	* 10.3.0: release
 
 	* The last several changes are in support of fixing more complex
 	cases of keeping form fields working properly through page copying
@@ -2425,7 +2689,7 @@
 2015-10-29  Jay Berkenbilt  <ejb@ql.org>
 
 	* Implement QPDFWriter::setDeterministicID and --deterministic-id
-	commandline-flag to qpdf to request generation of a deterministic
+	command-line flag to qpdf to request generation of a deterministic
 	/ID for non-encrypted files.
 
 2015-05-24  Jay Berkenbilt  <ejb@ql.org>

@@ -97,23 +97,15 @@ $(foreach B,$(BUILD_ITEMS),$(eval \
   clean_$(B): ; \
 	$(RM) -r $(B)/$(OUTPUT_DIR)))
 
-DISTFILES = doc/qpdf-manual.html doc/qpdf-manual.pdf
-distfiles.zip: $(DISTFILES)
-	$(RM) distfiles.zip
-	zip distfiles.zip $(DISTFILES)
-
 distclean: clean
 	$(RM) -r autoconf.mk autom4te.cache config.log config.status libtool
 	$(RM) libqpdf/qpdf/qpdf-config.h
 	$(RM) manual/html.xsl
 	$(RM) manual/print.xsl
-	$(RM) doc/*.1
 	$(RM) libqpdf.pc libqpdf.map
 
 maintainer-clean: distclean
-	$(RM) doc/qpdf-manual.*
 	$(RM) -r install-mingw* install-msvc* external-libs
-	$(RM) distfiles.zip
 
 .PHONY: $(TEST_TARGETS)
 
@@ -131,6 +123,13 @@ $(foreach B,$(BUILD_ITEMS),$(eval \
 all: $(ALL_TARGETS) ;
 
 check: $(TEST_TARGETS)
+
+.PHONY: spell
+# npm install -g cspell; add exceptions to cSpell.json
+spell:
+	cspell **/*.hh include/qpdf/*.h **/*.cc \
+	    manual/*.rst manual/*.in manual/_ext/*.py \
+	    ChangeLog README* TODO
 
 # Install targets are in the make directory in the rules-specific make
 # fragments.

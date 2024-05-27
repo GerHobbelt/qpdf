@@ -497,6 +497,28 @@ QPDFObjectHandle::isScalar()
                isOperator() || isInlineImage()));
 }
 
+bool
+QPDFObjectHandle::isNameAndEquals(std::string const& name)
+{
+    return isName() && (getName() == name);
+}
+
+bool
+QPDFObjectHandle::isDictionaryOfType(std::string const& type,
+                                     std::string const& subtype)
+{
+    return isDictionary() &&
+           (type.empty() || getKey("/Type").isNameAndEquals(type)) &&
+           (subtype.empty() || getKey("/Subtype").isNameAndEquals(subtype));
+}
+
+bool
+QPDFObjectHandle::isStreamOfType(std::string const& type,
+                                 std::string const& subtype)
+{
+    return isStream() && getDict().isDictionaryOfType(type, subtype);
+}
+
 // Bool accessors
 
 bool
@@ -864,6 +886,7 @@ QPDFObjectHandle::setArrayItem(int n, QPDFObjectHandle const& item)
 {
     if (isArray())
     {
+        checkOwnership(item);
         dynamic_cast<QPDF_Array*>(obj.getPointer())->setItem(n, item);
     }
     else
@@ -878,6 +901,10 @@ QPDFObjectHandle::setArrayFromVector(std::vector<QPDFObjectHandle> const& items)
 {
     if (isArray())
     {
+        for (auto const& item: items)
+        {
+            checkOwnership(item);
+        }
         dynamic_cast<QPDF_Array*>(obj.getPointer())->setFromVector(items);
     }
     else
@@ -906,6 +933,7 @@ QPDFObjectHandle::appendItem(QPDFObjectHandle const& item)
 {
     if (isArray())
     {
+        checkOwnership(item);
         dynamic_cast<QPDF_Array*>(obj.getPointer())->appendItem(item);
     }
     else
@@ -1027,21 +1055,19 @@ QPDFObjectHandle::getDictAsMap()
 bool
 QPDFObjectHandle::isOrHasName(std::string const& value)
 {
-    if (isName() && (getName() == value))
+    if (isNameAndEquals(value))
     {
-	return true;
+        return true;
     }
     else if (isArray())
     {
-	int n = getArrayNItems();
-	for (int i = 0; i < n; ++i)
-	{
-	    QPDFObjectHandle item = getArrayItem(0);
-	    if (item.isName() && (item.getName() == value))
-	    {
-		return true;
-	    }
-	}
+        for (auto& item: aitems())
+        {
+            if (item.isNameAndEquals(value))
+            {
+                return true;
+            }
+        }
     }
     return false;
 }
@@ -1283,6 +1309,7 @@ QPDFObjectHandle::replaceKey(std::string const& key,
 {
     if (isDictionary())
     {
+        checkOwnership(value);
         dynamic_cast<QPDF_Dictionary*>(
             obj.getPointer())->replaceKey(key, value);
     }
@@ -1313,6 +1340,7 @@ QPDFObjectHandle::replaceOrRemoveKey(std::string const& key,
 {
     if (isDictionary())
     {
+        checkOwnership(value);
         dynamic_cast<QPDF_Dictionary*>(
             obj.getPointer())->replaceOrRemoveKey(key, value);
     }
@@ -2490,8 +2518,7 @@ QPDFObjectHandle::parseInternal(PointerHolder<InputSource> input,
                 }
 		if (!contents_string.empty() &&
 		    dict.count("/Type") &&
-		    dict["/Type"].isName() &&
-		    dict["/Type"].getName() == "/Sig" &&
+                    dict["/Type"].isNameAndEquals("/Sig") &&
 		    dict.count("/ByteRange") &&
 		    dict.count("/Contents") &&
 		    dict["/Contents"].isString())
@@ -3040,23 +3067,17 @@ void
 QPDFObjectHandle::typeWarning(char const* expected_type,
                               std::string const& warning)
 {
-    QPDF* context = 0;
+    QPDF* context = nullptr;
     std::string description;
     dereference();
-    if (this->obj->getDescription(context, description))
-    {
-        warn(context,
-             QPDFExc(
-                 qpdf_e_damaged_pdf,
+    this->obj->getDescription(context, description);
+    // Null context handled by warn
+    warn(context,
+         QPDFExc(qpdf_e_object,
                  "", description, 0,
                  std::string("operation for ") + expected_type +
                  " attempted on object of type " +
                  getTypeName() + ": " + warning));
-    }
-    else
-    {
-        assertType(expected_type, false);
-    }
 }
 
 void
@@ -3083,7 +3104,12 @@ QPDFObjectHandle::warnIfPossible(std::string const& warning,
 void
 QPDFObjectHandle::objectWarning(std::string const& warning)
 {
-    warnIfPossible(warning, true);
+    QPDF* context = nullptr;
+    std::string description;
+    dereference();
+    this->obj->getDescription(context, description);
+    // Null context handled by warn
+    warn(context, QPDFExc(qpdf_e_object, "", description, 0, warning));
 }
 
 void
@@ -3208,7 +3234,7 @@ QPDFObjectHandle::isPageObject()
     if (this->hasKey("/Type"))
     {
         QPDFObjectHandle type = this->getKey("/Type");
-        if (type.isName() && (type.getName() == "/Page"))
+        if (type.isNameAndEquals("/Page"))
         {
             return true;
         }
@@ -3234,39 +3260,36 @@ QPDFObjectHandle::isPagesObject()
     }
     // getAllPages repairs /Type when traversing the page tree.
     getOwningQPDF()->getAllPages();
-    return (this->isDictionary() &&
-            this->hasKey("/Type") &&
-            this->getKey("/Type").isName() &&
-            this->getKey("/Type").getName() == "/Pages");
+    return isDictionaryOfType("/Pages");
 }
 
 bool
 QPDFObjectHandle::isFormXObject()
 {
-    if (! this->isStream())
-    {
-        return false;
-    }
-    QPDFObjectHandle dict = this->getDict();
-    return (dict.getKey("/Type").isName() &&
-            ("/XObject" == dict.getKey("/Type").getName()) &&
-            dict.getKey("/Subtype").isName() &&
-            ("/Form" == dict.getKey("/Subtype").getName()));
+    return isStreamOfType("/XObject", "/Form");
 }
 
 bool
 QPDFObjectHandle::isImage(bool exclude_imagemask)
 {
-    if (! this->isStream())
-    {
-        return false;
-    }
-    QPDFObjectHandle dict = this->getDict();
-    return (dict.hasKey("/Subtype") &&
-            (dict.getKey("/Subtype").getName() == "/Image") &&
+    return (isStreamOfType("", "/Image") &&
             ((! exclude_imagemask) ||
-             (! (dict.getKey("/ImageMask").isBool() &&
-                 dict.getKey("/ImageMask").getBoolValue()))));
+             (! (getDict().getKey("/ImageMask").isBool() &&
+                 getDict().getKey("/ImageMask").getBoolValue()))));
+}
+
+void
+QPDFObjectHandle::checkOwnership(QPDFObjectHandle const& item) const
+{
+    if ((this->qpdf != nullptr) &&
+        (item.qpdf != nullptr) &&
+        (this->qpdf != item.qpdf))
+    {
+        QTC::TC("qpdf", "QPDFObjectHandle check ownership");
+        throw std::logic_error(
+            "Attempting to add an object from a different QPDF."
+            " Use QPDF::copyForeignObject to add objects from another file.");
+    }
 }
 
 void
