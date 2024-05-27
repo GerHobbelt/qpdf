@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl This config.in requires autoconf 2.5 or greater.
 
 AC_PREREQ([2.68])
-AC_INIT([qpdf],[10.0.1])
+AC_INIT([qpdf],[10.2.0])
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_FILES([autoconf.mk])
@@ -36,7 +36,7 @@ fi
 AC_PROG_CC
 AC_PROG_CC_C99
 AC_PROG_CXX
-AX_CXX_COMPILE_STDCXX([11], [noext], [mandatory])
+AX_CXX_COMPILE_STDCXX([14], [noext], [mandatory])
 AC_HEADER_STDC
 LT_INIT([win32-dll])
 
@@ -52,14 +52,31 @@ LT_INIT([win32-dll])
 # * Otherwise, increment LT_REVISION
 
 # LT = libtool
-LT_CURRENT=28
-LT_AGE=0
-LT_REVISION=1
+LT_CURRENT=30
+LT_AGE=2
+LT_REVISION=0
 AC_SUBST(LT_CURRENT)
 AC_SUBST(LT_REVISION)
 AC_SUBST(LT_AGE)
 LT_SONAME=$(expr $LT_CURRENT - $LT_AGE)
 AC_SUBST(LT_SONAME)
+
+AC_MSG_CHECKING(for whether to use -rpath)
+AC_ARG_ENABLE(rpath,
+   AS_HELP_STRING([--enable-rpath],
+                  [whether to pass -rpath to the linker when building libraries]),
+   [if test "$enableval" = "yes"; then
+      qpdf_USE_RPATH=1;
+    else
+      qpdf_USE_RPATH=0;
+    fi], [qpdf_USE_RPATH=1])
+if test "$qpdf_USE_RPATH" = "1"; then
+   AC_MSG_RESULT(yes)
+   RPATH='-rpath $(libdir)'
+else
+   AC_MSG_RESULT(no)
+fi
+AC_SUBST(RPATH)
 
 AC_MSG_CHECKING(for -fvisibility=hidden)
 try_flags=-fvisibility=hidden
@@ -293,9 +310,7 @@ AC_ARG_WITH(large-file-test-path,
 
 AC_SYS_LARGEFILE
 AC_FUNC_FSEEKO
-AC_CHECK_FUNCS([fseeko64])
-
-AC_CHECK_FUNCS(random)
+AC_CHECK_FUNCS([fseeko64 random localtime_r])
 
 # Check if LD supports linker scripts, and define conditional
 # HAVE_LD_VERSION_SCRIPT if so.  This functionality is currently
@@ -505,6 +520,39 @@ if test "$BUILDRULES" != "msvc"; then
    fi
 fi
 
+LL_FMT=""
+oCFLAGS=$CFLAGS
+CFLAGS="$WFLAGS $CFLAGS"
+for fmt in "%lld" "%I64d" "%I64lld"; do
+  if test "$LL_FMT" = ""; then
+    AC_MSG_CHECKING(printf format for long long: $fmt)
+    AC_RUN_IFELSE([AC_LANG_PROGRAM(
+     [[
+        #define _CRT_SECURE_NO_WARNINGS
+        #include <stdio.h>
+        #include <string.h>
+     ]],
+     [[
+        long long int a = 123456789012345ll;
+        char s[30];
+        sprintf(s, "]$fmt[", a);
+        return (strcmp(s, "123456789012345") == 0) ? 0 : 1
+     ]]
+     )],
+     [LL_FMT=$fmt],[],[LL_FMT="%lld"])
+    if test "$LL_FMT" != ""; then
+       AC_MSG_RESULT(yes)
+    else
+       AC_MSG_RESULT(no)
+    fi
+  fi
+done
+CFLAGS=$oCFLAGS
+if test "LL_FMT" = ""; then
+  LL_FMT="%lld%"
+fi
+AC_DEFINE_UNQUOTED([LL_FMT], ["$LL_FMT"], [printf format for long long])
+
 AC_SUBST(WINDOWS_WMAIN_XLINK_FLAGS)
 AC_SUBST(WINDOWS_MAIN_XLINK_FLAGS)
 if test "$BUILDRULES" = "msvc"; then
@@ -558,8 +606,12 @@ dnl If the openssl provider is not explicitly disabled, enable it if
 dnl openssl is available. If the openssl provider is explicitly
 dnl disabled, do not link with openssl even if present.
 
-PKG_CHECK_MODULES([pc_openssl], [openssl >= 1.1.0],
-                  [OPENSSL_FOUND=1], [OPENSSL_FOUND=0])
+if test "$USE_EXTERNAL_LIBS" = "1"; then
+  OPENSSL_FOUND=1
+else
+  PKG_CHECK_MODULES([pc_openssl], [openssl >= 1.1.0],
+                    [OPENSSL_FOUND=1], [OPENSSL_FOUND=0])
+fi
 
 dnl Override pkg-config if headers and libraries are present.
 AS_IF([test "$OPENSSL_FOUND" = "0"],
@@ -908,7 +960,7 @@ if test "$USE_EXTERNAL_LIBS" = "1"; then
    # much trouble getting it to work with a different compiler.
    CPPFLAGS="$CPPFLAGS -Iexternal-libs/include"
    LDFLAGS="$LDFLAGS -Lexternal-libs/lib-$BUILDRULES$WINDOWS_WORDSIZE"
-   LIBS="$LIBS -lz -ljpeg"
+   LIBS="$LIBS -lz -ljpeg -lssl -lcrypto -lmsvcrt -lws2_32 -lshell32 -ladvapi32 -lgdi32 -luser32 -lcrypt32"
 fi
 
 AC_OUTPUT

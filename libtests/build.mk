@@ -16,6 +16,7 @@ BINS_libtests = \
 	main_from_wmain \
 	matrix \
 	md5 \
+	nntree \
 	numrange \
 	pointer_holder \
 	predictors \
@@ -29,7 +30,7 @@ BINS_libtests = \
 
 TARGETS_libtests = $(foreach B,$(BINS_libtests),libtests/$(OUTPUT_DIR)/$(call binname,$(B)))
 
-$(TARGETS_libtests): $(TARGETS_libqpdf)
+$(TARGETS_libtests): $(TARGETS_libqpdf) $(TARGETS_qpdf)
 
 INCLUDES_libtests = include libqpdf
 

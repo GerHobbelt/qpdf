@@ -1,3 +1,620 @@
+2021-03-04  Jay Berkenbilt  <ejb@ql.org>
+
+	* The last several changes are in support of fixing more complex
+	cases of keeping form fields working properly through page copying
+	operations. Fixes #509.
+
+	* Deprecated QPDFAcroFormDocumentHelper::copyFieldsFromForeignPage
+	-- use QPDFAcroFormDocumentHelper::fixCopiedAnnotations instead.
+	The API for dealing with annotations and form fields around
+	copying pages is extremely complex and very hard to get right. It
+	is planned for a future version of qpdf to have a higher level
+	interface for dealing with copying pages around and preserving
+	document-level constructs.
+
+	* Add QPDFAcroFormDocumentHelper::getFieldsWithQualifiedName for
+	returning a list of fields by name.
+
+	* Add QPDFAcroFormDocumentHelper::addAndRenameFormFields to add a
+	collection of fields while ensuring that, within the collection,
+	fields with the same name continue to have the same name, but that
+	they don't conflict with exiting fields in the document.
+
+	* Add QPDFAcroFormDocumentHelper::setFormFieldName for changing
+	the name of a form field in a manner that preserves
+	QPDFAcroFormDocumentHelper's cache.
+
+2021-03-03  Jay Berkenbilt  <ejb@ql.org>
+
+	* Handle /DR properly when copying form fields. This is a
+	significant rework of the form field copying from 10.2.0. It
+	ensures that when copy fields from different files, we resolve any
+	conflicting names in resources.
+
+	* Add QPDFMatrix::operator==
+
+	* Add QPDFObjectHandle::makeResourcesIndirect
+
+2021-03-02  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add an optional resource_names argument to getUniqueResourceName
+	for added efficiency.
+
+	* Add conflict detection QPDFObjectHandle::mergeResources.
+
+2021-03-01  Jay Berkenbilt  <ejb@ql.org>
+
+	* Improve code that finds unreferenced resources to ignore names
+	in the content stream that are not fonts or XObjects. This should
+	reduce the number of cases when qpdf needlessly decides not to
+	remove unreferenced resources. Hopefully it doesn't create any new
+	bugs where it removes unreferenced resources that it isn't
+	supposed to.
+
+	* Add QPDF::numWarnings() -- useful to tell whether any warnings
+	were issued by a specific bit of code.
+
+2021-02-26  Jay Berkenbilt  <ejb@ql.org>
+
+	* Bug fix: QPDFFormFieldObjectHelper was mis-handling /DA, /Q, and
+	/DR in ways that usually didn't matter but were still wrong. /DA
+	and /Q were being found in the field hierarchy, but if not found,
+	the default values in the /AcroForm dictionary were not being
+	used. /DR was being treated as an inherited field in the field
+	dictionary, which is wrong. It is actually supposed to come from
+	the /AcroForm dictionary. We were getting away with this since
+	many popular form writers seem to copy it to the field as well,
+	even though the spec makes no mention of doing this. To support
+	this, QPDFFormFieldObjectHelper::getDefaultResources was added.
+
+2021-02-25  Jay Berkenbilt  <ejb@ql.org>
+
+	* Update StreamDataProvider examples to use copyStream() when they
+	want to get to the original stream data from the provider. Prior
+	to 10.2.0, we had to copy the stream to another QPDF, but now we
+	can just use copyStream().
+
+	* Bug fix/behavior change: when QPDF::replaceObject or
+	QPDF::swapObjects is called, existing QPDFObjectHandle instances
+	will now notice the change. This removes a long-standing source of
+	bugs and confusing behavior.
+
+2021-02-23  Jay Berkenbilt  <ejb@ql.org>
+
+	* 10.2.0: release
+
+	* The test for the input and output files being the same wasn't
+	implemented correctly for --split-pages since the specified output
+	file is really a pattern, not the actual output file.
+
+2021-02-22  Jay Berkenbilt  <ejb@ql.org>
+
+	* From qpdf CLI, --pages and --split-pages will properly preserve
+	interactive form functionality. Fixes #340.
+
+	* Add QPDFAcroFormDocumentHelper::copyFieldsFromForeignPage to
+	copy form fields from a foreign page into the current file. (This
+	method didn't work and was deprecated in 10.3.0.)
+
+	* Add QPDFFormFieldObjectHelper::getTopLevelField to get the
+	top-level field for a given form field.
+
+	* Update pdf-overlay-page example to include copying of
+	annotations.
+
+	* Add a new version of QPDFPageObjectHelper::placeFormXObject that
+	initializes the transformation matrix that was used so you don't
+	have to call both placeFormXObject and
+	getMatrixForFormXObjectPlacement.
+
+2021-02-21  Jay Berkenbilt  <ejb@ql.org>
+
+	* From qpdf CLI, --overlay and --underlay will copy annotations
+	and form fields from overlay/underlay file. Fixes #395.
+
+	* Add QPDFPageObjectHelper::copyAnnotations, which copies
+	annotations and, if applicable, associated form fields, from one
+	page to another, possibly transforming the rectangles.
+
+	* Bug fix: --flatten-rotation now applies the required
+	transformation to annotations on the page.
+
+	* Add QPDFAcroFormDocumentHelper::transformAnnotations to apply a
+	transformation to a group of annotations.
+
+	* Add QPDFObjGen::unparse()
+
+	* Add QPDFObjectHandle::copyStream() for making a copy of a stream
+	within the same QPDF instance.
+
+	* Allow QPDFObjectHandle::newArray and
+	QPDFObjectHandle::newFromMatrix take QPDFMatrix as well as
+	QPDFObjectHandle::Matrix
+
+	* Make member variables a--f of QPDFMatrix public
+
+2021-02-20  Jay Berkenbilt  <ejb@ql.org>
+
+	* Allow --rotate=0 to clear rotation from a page.
+
+2021-02-18  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add QPDFAcroFormDocumentHelper::addFormField, which adds a new
+	form field, initializing the AcroForm dictionary if needed.
+
+	* Add QPDFPageObjectHelper::getMatrixForFormXObjectPlacement,
+	which returns the transformation matrix required to map from a
+	form field's coordinate system into a specific rectangle within
+	the page.
+
+	* Add QUtil::path_basename to get last element of a path.
+
+	* Add examples/pdf-attach-file.cc to illustrate new file
+	attachment method and also new parse that takes indirect objects.
+
+2021-02-17  Jay Berkenbilt  <ejb@ql.org>
+
+	* Allow optional numeric argument to --collate. If --collate=n is
+	given, pull n pages from the first file, n pages from the second
+	file, etc., until we run out of pages.
+
+2021-02-15  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add a version of QPDFObjectHandle::parse that takes a QPDF* as
+	context so that it can parse strings containing indirect object
+	references.
+
+2021-02-14  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add new versions of QPDFObjectHandle::replaceStreamData that
+	take std::function objects for cases when you need something
+	between a static string and a full-fledged StreamDataProvider.
+	Using this with QUtil::file_provider is a very easy way to create
+	a stream from the contents of a file.
+
+2021-02-12  Jay Berkenbilt  <ejb@ql.org>
+
+	* Move formerly internal QPDFMatrix class to the public API. This
+	class provides convenience methods for working with transformation
+	matrices.
+
+	* QUtil::double_to_string: trim trailing zeroes by default, and
+	add option to not trim trailing zeroes. This causes a syntactic
+	but semantically preserving change in output when doubles are
+	converted to strings. The library uses double_to_string in only a
+	few places. In practice, output will be different (trailing zeroes
+	removed) in code that creates form XObjects (mostly generation of
+	appearance streams for form fields as well as overlay and
+	underlay) and in the flatten rotation code that was added in qpdf
+	10.1.
+
+2021-02-10  Jay Berkenbilt  <ejb@ql.org>
+
+	* Require a C++-14 compiler.
+
+	* Detect loops when adding when reading outlines dictionary upon
+	initialization of QPDFOutlineDocumentHelper (fuzz issue 30507).
+
+	* Add "attachments" as an additional json key, and add some
+	information about attachments to the json output.
+
+	* Add new command-line arguments for operating on attachments:
+	--list-attachments, --add-attachment, --remove-attachment,
+	--copy-attachments-from. See --help and manual for details.
+
+2021-02-09  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add methods to QUtil for working with PDF timestamp strings:
+	pdf_time_to_qpdf_time, qpdf_time_to_pdf_time,
+	get_current_qpdf_time.
+
+2021-02-08  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add helper classes for file attachments:
+	QPDFEmbeddedFileDocumentHelper, QPDFFileSpecObjectHelper,
+	QPDFEFStreamObjectHelper. See their header files for details.
+
+2021-02-07  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add new functions QUtil::pipe_file and QUtil::file_provider for
+	sending the contents of a file through a pipeline as binary data.
+
+2021-02-04  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add new option --password-file=file for reading the decryption
+	password from a file. file may be "-" to read from standard input.
+	Fixes #499.
+
+	* By default, give an error if a user attempts to encrypt a file
+	with a 256-bit key, a non-empty user password, and an empty owner
+	password. Such files are insecure since they can be opened with no
+	password. To allow explicit creation of files like this, pass the
+	new --allow-insecure option. Thanks to github user RobK88 for a
+	detailed analysis and for reporting this issue. Fixes #501.
+
+2021-02-02  Jay Berkenbilt  <ejb@ql.org>
+
+	* Bug fix: if a form XObject lacks a resources dictionary,
+	consider any names in that form XObject to be referenced from the
+	containing page. This is compliant with older PDF versions. Also
+	detect if any form XObjects have any unresolved names and, if so,
+	don't remove unreferenced resources from them or from the page
+	that contains them. Fixes #494.
+
+2021-01-31  Jay Berkenbilt  <ejb@ql.org>
+
+	* Bug fix: properly handle strings if they appear in inline image
+	dictionaries while externalizing inline images.
+
+2021-01-30  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add examples/pdf-name-number-tree.cc to illustrate new
+	name/number tree API and new array/dictionary iterator API.
+
+2021-01-29  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add methods to QPDFObjectHandle that provide a C++ iterator API,
+	including C++11 range-for iteration, over arrays and dictionaries.
+	With this, you can do
+
+	for (auto i: dict_oh.ditems())
+	{
+	    // i.first is a string, i.second is a QPDFObjectHandle
+	}
+	for (auto i: array_oh.aitems())
+	{
+	    // i is a QPDFObjectHandle
+	}
+
+	* QPDFObjectHandle::is* methods to check type now return false on
+	uninitialized objects rather than crashing or throwing a logic
+	error.
+
+2021-01-24  Jay Berkenbilt  <ejb@ql.org>
+
+	* Implement remove for name and number trees as well as exposing
+	remove and insertAfter methods for iterators. With this addition,
+	qpdf now has robust read/write support for name and number trees.
+
+2021-01-23  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add an insert method to QPDFNameTreeObjectHelper and
+	QPDFNumberTreeObjectHelper.
+
+	* QPDFNameTreeObjectHelper and QPDFNumberTreeObjectHelper will
+	automatically repair broken name and number trees by default. This
+	behavior can be turned off.
+
+	* Change behavior of QPDFObjectHandle::newUnicodeString so that it
+	encodes ASCII or PDFDocEncoding if those encodings will support
+	all the characters in the string, resorting to UTF-16 only if the
+	other encodings are insufficient. This is a cleaner implementation
+	of the intention of encoding strings for use outside of contents
+	and results in fewer instances of ASCII strings being needlessly
+	encoded as UTF-16. This change may cause qpdf to generate
+	different output from the same input when form field values are
+	set using methods from QPDFFormFieldObjectHelper.
+
+2021-01-16  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add new constructors for QPDFNameTreeObjectHelper and
+	QPDFNumberTreeObjectHelper that take a QPDF object so they can
+	create indirect objects and issue warnings. The old constructors
+	are deprecated and will be removed in qpdf 11. Just pass in the
+	owning QPDF of the object handle used to initialize the helpers.
+
+	* Re-implement QPDFNameTreeObjectHelper and
+	QPDFNumberTreeObjectHelper to be much more efficient and to have
+	an iterator-based API in addition to the existing one. This makes
+	it possible to use "range-for" loops over these helpers and to
+	iterate through name and number trees without creating a map
+	containing all the keys and values, which is slow and potentially
+	consumes a lot of memory.
+
+	* Add warn() to QPDF's public API.
+
+2021-01-11  Jay Berkenbilt  <ejb@ql.org>
+
+	* Fix very old error in code that was finding attachment streams.
+	Probably this error never mattered, but the code was still not
+	exactly right.
+
+2021-01-06  Jay Berkenbilt  <ejb@ql.org>
+
+	* Give warnings instead of segfaulting if a QPDF operation is
+	attempted after calling closeInputSource(). Fixes #495.
+
+2021-01-05  Jay Berkenbilt  <ejb@ql.org>
+
+	* 10.1.0: release
+
+2021-01-04  Jay Berkenbilt  <ejb@ql.org>
+
+	* When qpdf CLI extracts pages, it now only attempts to remove
+	unreferenced resources from the pages that it is keeping. This
+	change dramatically reduces the time it takes to extract a small
+	number of pages from a large, complex file.
+
+	* Move getNext()->write() calls in some pipelines to ensure that
+	state gates properly reset even if the next pipeline's write
+	throws an exception (fuzz issue 28262).
+
+2021-01-03  Jay Berkenbilt  <ejb@ql.org>
+
+	* Don't include -o nospace with zsh completion setup so file
+	completion works normally. Fixes #473.
+
+2021-01-02  Jay Berkenbilt  <ejb@ql.org>
+
+	* Make QPDFPageObjectHelper methods pipeContents, parseContents,
+	and addContentTokenFilter work with form XObjects.
+
+	* Rename some QPDFPageObjectHelper methods and make them support
+	form XObjects as well as pages. The old names will be preserved
+	from compatibility.
+	- pipePageContents -> pipeContents
+	- parsePageContents -> parseContents
+
+	* Add QPDFObjectHandle::parseAsContents to apply ParserCallbacks
+	to a form XObject.
+
+	* QPDFPageObjectHelper::externalizeInlineImages can be called with
+	form XObjects as well as pages.
+
+	* Bug fix: QPDFPageObjectHelper::externalizeInlineImages was not
+	descending into form XObjects on a page. It now does this by
+	default. In the extremely unlikely event that anyone was actually
+	depending on the old behavior, it is available by passing
+	shallow=true to the externalizeInlineImages call.
+
+	* Bug fix: QPDFObjectHandle::filterPageContents was broken for
+	pages with an array of content streams. This caused
+	externalize-inline-images to also be broken for this case.
+
+2021-01-01  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add methods to QPDFPageObjectHelper: forEachXObject,
+	forEachImage, forEachFormXObject to call a function on each
+	XObject (or image or form XObject) in a page or form XObject,
+	possibly recursing into nested form XObjects.
+
+	* Add method QPDFPageObjectHelper::getFormXObjects to return a map
+	of keys to form XObjects (non-recursively) from a page or form
+	XObject.
+
+	* Add method QPDFObjectHandle::isImage to test whether an object
+	is an image.
+
+2020-12-31  Jay Berkenbilt  <ejb@ql.org>
+
+	* QPDFPageObjectHelper::removeUnreferencedResources can now be
+	called with a QPDFPageObjectHelper created from a form XObject.
+	The method already recursed into form XObjects.
+
+	* Rename some QPDFPageObjectHelper methods and make them support
+	form XObjects as well as pages. The old names will be preserved
+	from compatibility.
+	- getPageImages -> getImages
+	- filterPageContents -> filterContents
+
+	* Add QPDFObjectHandle::isFormXObject to test whether an object is
+	a form XObject.
+
+2020-12-30  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add QPDFPageObjectHelper::flattenRotation and --flatten-rotation
+	option to the qpdf CLI. The flattenRotation method removes any
+	/Rotate key from a page dictionary and implements the same
+	rotation by modifying the page's contents such that the various
+	page boxes are altered and the page renders identically. This can
+	be used to work around buggy PDF applications that don't properly
+	handle page rotation. The --flatten-rotation option to the qpdf
+	CLI calls flattenRotation for every page.
+
+2020-12-26  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add QPDFObjectHandle::setFilterOnWrite, which can be used to
+	tell QPDFWriter not to filter a stream on output even if it can.
+	You can use this to prevent QPDFWriter from touching a stream
+	(either uncompressing or compressing) that you have optimized or
+	otherwise ensured looks exactly the way you want it, even if
+	decode level or stream compression would otherwise cause
+	QPDFWriter to modify the stream.
+
+	* Add ostream << for QPDFObjGen. (Don't ask why it took 7.5 years
+	for me to decide to do this.)
+
+2020-12-25  Jay Berkenbilt  <ejb@ql.org>
+
+	* Refactor write code to eliminate an extra full traversal of
+	objects in the file and to remove assumptions that preclude stream
+	references from appearing in /DecodeParms of filterable streams.
+	This results in an approximately 8% performance reduction in write
+	times.
+
+2020-12-23  Jay Berkenbilt  <ejb@ql.org>
+
+	* Allow library users to provide their own decoders for stream
+	filters by deriving classes from QPDFStreamFilter and registering
+	them using QPDF::registerStreamFilter. Registered stream filters
+	provide code to validate and interpret /DecodeParms for a specific
+	/Filter and also to provide a pipeline that will decode. Note that
+	it is possible to encode to a filter type that is not supported
+	even without this feature. See examples/pdf-custom-filter.cc for
+	an example of using custom stream filters.
+
+2020-12-22  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add QPDFObjectHandle::makeDirect(bool allow_streams) -- if
+	allow_streams is true, preserve indirect references to streams
+	rather than throwing an exception. This allows the object to be
+	made as direct as possible while preserving stream references.
+
+2020-12-20  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add qpdf_register_progress_reporter method to C API,
+	corresponding to QPDFWriter::registerProgressReporter. Fixes #487.
+
+2020-11-28  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add new functions to the C API for manipulating
+	QPDFObjectHandles. The new functions allow creation and
+	modification of objects, which brings a lot of additional power to
+	the C API. See include/qpdf/qpdf-c.h for details and
+	examples/pdf-c-objects.c for a simple example.
+
+2020-11-21  Jay Berkenbilt  <ejb@ql.org>
+
+	* 10.0.4: release
+
+	* Fix QIntC::range_check to handle negative numbers properly (fuzz
+	issue 26994).
+
+2020-11-11  Jay Berkenbilt  <ejb@ql.org>
+
+	* Treat a direct page object as a runtime error rather than a
+	logic error since it is actually possible to create a file that
+	has this (fuzz issue 27393).
+
+2020-11-09  Jay Berkenbilt  <ejb@ql.org>
+
+	* Handle "." appearing in --pages not preceded by a numeric range
+	as a special case in command-line parsing code.
+
+2020-11-04  Jay Berkenbilt  <ejb@ql.org>
+
+	* Ignore the value of the offset/generation field in an xref entry
+	for a deleted object. Also attempt file recovery on lower-level
+	exceptions thrown while reading the xref table. Fixes #482.
+
+2020-10-31  Jay Berkenbilt  <ejb@ql.org>
+
+	* 10.0.3: release
+
+	* Don't enter extension initialization in QPDFWriter on a direct
+	object. Fixes stack overflow in pathological case of /Root being a
+	direct object (fuzz issue 26761).
+
+	* My previous fix to #449 (handling foreign streams with indirect
+	objects in /Filter and/or /DecodeParms) was incorrect and caused
+	other problems. There is a now a correct fix to the original
+	problem. Fixes #478.
+
+2020-10-27  Jay Berkenbilt  <ejb@ql.org>
+
+	* 10.0.2: release
+
+2020-10-25  Jay Berkenbilt  <ejb@ql.org>
+
+	* When signing distribution files, generate sha256 checksums
+	instead of md5, sha1, and sha512. sha256 seems to be more widely
+	used, and there's no reason to use md5 or sha1 anymore.
+
+	* Official Windows releases are now built using the openssl crypto
+	provider. The native provider is still available for selection at
+	runtime using the QPDF_CRYPTO_PROVIDER environment variable.
+
+	* Bug fix: --no-warn was not suppressing some warnings that might
+	be generated by --split-pages.
+
+2020-10-23  Jay Berkenbilt  <ejb@ql.org>
+
+	* Bug fix: when concatenating content streams, insert a newline if
+	needed to prevent the last token from the old stream from being
+	merged with the first token of the new stream. Qpdf was mistakenly
+	concatenating the streams without regard to the specification that
+	content streams are to be broken on token boundaries. Fixes #444.
+
+	* fix-qdf: handle empty streams better with ignore newline by
+	treating them as empty even though, technically, a blank line
+	would be required inside the Stream. This just makes it easier to
+	add place-holder empty streams while editing qdf files by hand.
+
+2020-10-22  Jay Berkenbilt  <ejb@ql.org>
+
+	* Fix memory leak that could occur if objects in object streams
+	were resolved more than once and the objects within the object
+	streams contained circular references. This leak could be
+	triggered when qpdf was run with --object-streams=generate on
+	files that already had object streams containing circular
+	references (fuzz issue 23642).
+
+	* Add QIntC::range_check for checking to see whether adding two
+	numbers together will cause an overflow.
+
+	* Fix loop detection problem when traversing page thumbnails
+	during optimization (fuzz issue 23172).
+
+2020-10-21  Jay Berkenbilt  <ejb@ql.org>
+
+	* Bug fix: properly handle copying foreign streams that have
+	indirect /Filter or /DecodeParms keys when stream data has been
+	replaced. The circumstances leading to this bug are very unusual
+	but would cause qpdf to either generate an internal error or some
+	other kind of warning situation if it would occur. Fixes #449.
+
+	* Qpdf's build and CI has been migrated from Azure Pipelines
+	(Azure DevOps) to GitHub Actions.
+
+	* Remove some fuzz files that triggered Mal/PDFEx-H with some
+	virus scanners. There's plenty of coverage in the fuzz corpus
+	without these files, and it's a nuisance to have virus checkers
+	remove them. Fixes #460.
+
+	* Ensure that numeric conversion is not affected by the user's
+	global locale setting. Fixes #459.
+
+	* Add qpdf-<version>-linux-x86_64.zip to the list of built
+	distributions. This is a simple zip file that contains just the
+	qpdf executables and the dependent shared libraries that would not
+	ordinarily be present on a base system. This minimal binary
+	distribution works as is when used as a Lambda layer in AWS and
+	could be suitable for inclusion in a docker image or other
+	standalone Linux/x86_64 environment where you want minimal support
+	for running the qpdf executable. Fixes #352.
+
+2020-10-20  Jay Berkenbilt  <ejb@ql.org>
+
+	* Add --warning-exit-0 option to the qpdf command line. When
+	specified, qpdf will exit with a status of 0 rather than 3 when
+	there are warnings without errors. Combine with --no-warn to
+	completely ignore warnings.
+
+	* Bug fix: fix further cases in which errors were written to
+	stdout. Fixes #438.
+
+	* Build option: add --disable-rpath option to ./configure, which
+	disables passing -rpath to the linker when building shared
+	libraries with libtool. Fixes #422.
+
+2020-10-16  Jay Berkenbilt  <ejb@ql.org>
+
+	* Accept pull request that improves how the Windows native crypto
+	provider is obtained.
+
+	* Accept pull request that improves performance in processing
+	files in memory.
+
+	* Accept pull requests that improve openssl configuration and
+	error reporting.
+
+	* Build using GitHub Actions. The intention is that this will
+	replace Azure Pipelines as the official CI for qpdf for the next
+	release.
+
+2020-10-15  Jay Berkenbilt  <ejb@ql.org>
+
+	* Make many minor improvements to the build process and code
+	health, including fixing a lgtm warning and compiler warnings from
+	newer version of gcc and MSVC toolchains. Add several cosmetic
+	improvements to build output in CI.
+
+	* Added LL_FMT to config.h.in. This is populated automatically by
+	autoconf, but if build with your own build system, you may need to
+	define it as whatever the format string needed by printf for long
+	long is. Usually this is "%lld", but it can be "%I64d" for some
+	older Windows-based compilers.
+
 2020-04-29  Jay Berkenbilt  <ejb@ql.org>
 
 	* Bug fix: qpdf --check was writing errors and warnings reported

@@ -2,7 +2,7 @@
 
 [![QPDF](logo/qpdf.svg)](http://qpdf.sourceforge.net)
 
-[![Azure Pipeline Build Status](https://dev.azure.com/qpdf/qpdf/_apis/build/status/qpdf.qpdf)](https://dev.azure.com/qpdf/qpdf/_build/latest?definitionId=5) [![Travis Build Status](https://travis-ci.org/qpdf/qpdf.svg?branch=master)](https://travis-ci.org/qpdf/qpdf)
+[![QPDF Build](https://github.com/qpdf/qpdf/workflows/QPDF%20Build/badge.svg)](https://github.com/qpdf/qpdf/actions)
 [![Total lgtm alerts](https://img.shields.io/lgtm/alerts/g/qpdf/qpdf.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/qpdf/qpdf/alerts/)
 [![Language grade on lgtm: C/C++](https://img.shields.io/lgtm/grade/cpp/g/qpdf/qpdf.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/qpdf/qpdf/context:cpp)
 
@@ -14,7 +14,7 @@ The public key used to sign qpdf source distributions has fingerprint `C2C9 6B10
 
 # Copyright, License
 
-QPDF is copyright (c) 2005-2020 Jay Berkenbilt
+QPDF is copyright (c) 2005-2021 Jay Berkenbilt
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
@@ -28,7 +28,7 @@ Versions of qpdf prior to version 7 were released under the terms of version 2.0
 
 # Prerequisites
 
-QPDF requires a C++ compiler that supports C++-11.
+QPDF requires a C++ compiler that supports C++-14.
 
 QPDF depends on the external libraries [zlib](https://www.zlib.net/) and [jpeg](https://www.ijg.org/files/). The [libjpeg-turbo](https://libjpeg-turbo.org/) library is also known to work since it is compatible with the regular jpeg library, and QPDF doesn't use any interfaces that aren't present in the straight jpeg8 API. These are part of every Linux distribution and are readily available. Download information appears in the documentation. For Windows, you can download pre-built binary versions of these libraries for some compilers; see [README-windows.md](README-windows.md) for additional details.
 
@@ -36,7 +36,7 @@ Depending on which crypto providers are enabled, then [GnuTLS](https://www.gnutl
 
 # Licensing terms of embedded software
 
-QPDF makes use of zlib and jpeg libraries for its functionality. These packages can be downloaded separately from their own download locations, or they can be downloaded in the external-libs area of the qpdf download site. If the optional GnuTLS crypto provider is enabled, then GnuTLS is also required.
+QPDF makes use of zlib and jpeg libraries for its functionality. These packages can be downloaded separately from their own download locations. If the optional GnuTLS or OpenSSL crypto providers are enabled, then GnuTLS and/or OpenSSL are also required.
 
 Please see the [NOTICE](NOTICE.md) file for information on licenses of embedded software.
 

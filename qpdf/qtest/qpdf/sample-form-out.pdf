@@ -1489,6 +1489,9 @@ endobj
     /Encoding <<
       /PDFDocEncoding 41 0 R
     >>
+    /ExtGState <<
+      /FXE1 42 0 R
+    >>
     /Font <<
       /ArialMT 26 0 R
       /F2 24 0 R
@@ -1552,6 +1555,9 @@ endobj
   /Resources <<
     /Encoding <<
       /PDFDocEncoding 41 0 R
+    >>
+    /ExtGState <<
+      /FXE1 42 0 R
     >>
     /Font <<
       /ArialMT 26 0 R
@@ -1617,6 +1623,9 @@ endobj
     /Encoding <<
       /PDFDocEncoding 41 0 R
     >>
+    /ExtGState <<
+      /FXE1 42 0 R
+    >>
     /Font <<
       /ArialMT 26 0 R
       /F2 24 0 R
@@ -1659,6 +1668,9 @@ endobj
   /Resources <<
     /Encoding <<
       /PDFDocEncoding 41 0 R
+    >>
+    /ExtGState <<
+      /FXE1 42 0 R
     >>
     /Font <<
       /ArialMT 26 0 R
@@ -1712,6 +1724,9 @@ endobj
     /Encoding <<
       /PDFDocEncoding 41 0 R
     >>
+    /ExtGState <<
+      /FXE1 42 0 R
+    >>
     /Font <<
       /ArialMT 26 0 R
       /F2 24 0 R
@@ -1762,6 +1777,9 @@ endobj
   /Resources <<
     /Encoding <<
       /PDFDocEncoding 41 0 R
+    >>
+    /ExtGState <<
+      /FXE1 42 0 R
     >>
     /Font <<
       /ArialMT 26 0 R
@@ -1814,6 +1832,9 @@ endobj
     /Encoding <<
       /PDFDocEncoding 41 0 R
     >>
+    /ExtGState <<
+      /FXE1 42 0 R
+    >>
     /Font <<
       /ArialMT 26 0 R
       /F2 24 0 R
@@ -1864,6 +1885,9 @@ endobj
   /Resources <<
     /Encoding <<
       /PDFDocEncoding 41 0 R
+    >>
+    /ExtGState <<
+      /FXE1 42 0 R
     >>
     /Font <<
       /ArialMT 26 0 R
@@ -1999,12 +2023,29 @@ endobj
     0
   ]
   /Resources <<
+    /Encoding <<
+      /PDFDocEncoding 41 0 R
+    >>
+    /ExtGState <<
+      /FXE1 42 0 R
+    >>
     /Font <<
+      /ArialMT 26 0 R
+      /F2 24 0 R
+      /F3 26 0 R
+      /FXF1 26 0 R
+      /Helv 29 0 R
       /ZaDi 13 0 R
     >>
     /ProcSet [
       /PDF
+      /Text
+      /ImageC
+      /ImageI
+      /ImageB
     ]
+    /XObject <<
+    >>
   >>
   /Subtype /Form
   /Type /XObject
@@ -2040,6 +2081,9 @@ endobj
   /Resources <<
     /Encoding <<
       /PDFDocEncoding 41 0 R
+    >>
+    /ExtGState <<
+      /FXE1 42 0 R
     >>
     /Font <<
       /ArialMT 26 0 R
@@ -2099,6 +2143,9 @@ endobj
   /Resources <<
     /Encoding <<
       /PDFDocEncoding 41 0 R
+    >>
+    /ExtGState <<
+      /FXE1 42 0 R
     >>
     /Font <<
       /ArialMT 26 0 R
@@ -2163,6 +2210,9 @@ endobj
   /Resources <<
     /Encoding <<
       /PDFDocEncoding 41 0 R
+    >>
+    /ExtGState <<
+      /FXE1 42 0 R
     >>
     /Font <<
       /ArialMT 26 0 R
@@ -2651,62 +2701,62 @@ stream
 
 Q
 q
-1.00000 0.00000 0.00000 1.00000 165.70000 453.70000 cm
+1 0 0 1 165.7 453.7 cm
 /Fxo1 Do
 Q
 q
-1.00000 0.00000 0.00000 1.00000 165.70000 421.20000 cm
+1 0 0 1 165.7 421.2 cm
 /Fxo2 Do
 Q
 q
-1.00000 0.00000 0.00000 1.00000 165.70000 388.30000 cm
+1 0 0 1 165.7 388.3 cm
 /Fxo3 Do
 Q
 q
-1.00000 0.00000 0.00000 1.00000 378.40000 388.40000 cm
+1 0 0 1 378.4 388.4 cm
 /Fxo4 Do
 Q
 q
-1.00000 0.00000 0.00000 1.00000 165.70000 368.40000 cm
+1 0 0 1 165.7 368.4 cm
 /Fxo5 Do
 Q
 q
-1.00000 0.00000 0.00000 1.00000 165.70000 348.50000 cm
+1 0 0 1 165.7 348.5 cm
 /Fxo6 Do
 Q
 q
-1.00000 0.00000 0.00000 1.00000 297.10000 348.50000 cm
+1 0 0 1 297.1 348.5 cm
 /Fxo7 Do
 Q
 q
-1.00000 0.00000 0.00000 1.00000 165.70000 315.90000 cm
+1 0 0 1 165.7 315.9 cm
 /Fxo8 Do
 Q
 q
-1.00000 0.00000 0.00000 1.00000 165.70000 283.40000 cm
+1 0 0 1 165.7 283.4 cm
 /Fxo9 Do
 Q
 q
-1.00000 0.00000 0.00000 1.00000 165.70000 250.80000 cm
+1 0 0 1 165.7 250.8 cm
 /Fxo10 Do
 Q
 q
-1.00000 0.00000 0.00000 1.00000 164.10000 221.40000 cm
+1 0 0 1 164.1 221.4 cm
 /Fxo11 Do
 Q
 q
-1.00000 0.00000 0.00000 1.00000 154.80000 177.60000 cm
+1 0 0 1 154.8 177.6 cm
 /Fxo12 Do
 Q
 q
-1.00000 0.00000 0.00000 1.00000 165.70000 143.40000 cm
+1 0 0 1 165.7 143.4 cm
 /Fxo13 Do
 Q
 endstream
 endobj
 
 83 0 obj
-891
+475
 endobj
 
 84 0 obj
@@ -2752,10 +2802,12 @@ endobj
 >>
 stream
           Í                      	  
-                                               !  "  #  $  %  &  ' BŸ  Pb  PÇ  St  U≤  U∆  X  X  Z  Z  [Ë  [¸  ]Ê  ]˘  _‚  _ı  aﬂ  aÚ  c›  c  e  e   f}  fë  g˜  h  j  j1  lq  lÖ  nn  nÅ  ˇ•  ˇº ã ∑ Ú  @ l   5   ﬁ å † 
+                                               !  "  #  $  %  &  ' BŸ  Pb  PÇ  St  Uﬁ  UÚ  X\  Xp  ZÜ  Zô  \ò  \¨  ^¬  ^’  `Í  `˝  c  c&  e=  eP  fl  fÄ  g›  gÒ  jc  jw  lµ  l…  o5  oI  q^  qq ï ¨ { ß ‚  
+0 
+\ p Ö  . ‹  
 endstream
 endobj
 
 startxref
-68768
+69104
 %%EOF

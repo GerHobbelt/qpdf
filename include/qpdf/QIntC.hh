@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2020 Jay Berkenbilt
+// Copyright (c) 2005-2021 Jay Berkenbilt
 //
 // This file is part of qpdf.
 //
@@ -29,6 +29,7 @@
 #include <limits>
 #include <sstream>
 #include <cassert>
+#include <locale>
 #include <type_traits>
 
 // This namespace provides safe integer conversion that detects
@@ -67,6 +68,7 @@ namespace QIntC // QIntC = qpdf Integer Conversion
             if (i > std::numeric_limits<To>::max())
             {
                 std::ostringstream msg;
+                msg.imbue(std::locale::classic());
                 msg << "integer out of range converting " << i
                     << " from a "
                     << sizeof(From) << "-byte unsigned type to a "
@@ -88,6 +90,7 @@ namespace QIntC // QIntC = qpdf Integer Conversion
                 (i > std::numeric_limits<To>::max()))
             {
                 std::ostringstream msg;
+                msg.imbue(std::locale::classic());
                 msg << "integer out of range converting " << i
                     << " from a "
                     << sizeof(From) << "-byte signed type to a "
@@ -111,6 +114,7 @@ namespace QIntC // QIntC = qpdf Integer Conversion
             if ((i < 0) || (ii > std::numeric_limits<To>::max()))
             {
                 std::ostringstream msg;
+                msg.imbue(std::locale::classic());
                 msg << "integer out of range converting " << i
                     << " from a "
                     << sizeof(From) << "-byte signed type to a "
@@ -134,6 +138,7 @@ namespace QIntC // QIntC = qpdf Integer Conversion
             if (i > maxval)
             {
                 std::ostringstream msg;
+                msg.imbue(std::locale::classic());
                 msg << "integer out of range converting " << i
                     << " from a "
                     << sizeof(From) << "-byte unsigned type to a "
@@ -201,7 +206,7 @@ namespace QIntC // QIntC = qpdf Integer Conversion
     }
 
     template <typename T>
-    unsigned long  to_ulong(T const& i)
+    unsigned long to_ulong(T const& i)
     {
         return IntConverter<T, unsigned long >::convert(i);
     }
@@ -216,6 +221,34 @@ namespace QIntC // QIntC = qpdf Integer Conversion
     unsigned long long to_ulonglong(T const& i)
     {
         return IntConverter<T, unsigned long long>::convert(i);
+    }
+
+    template <typename T>
+    void range_check(T const& cur, T const& delta)
+    {
+        if ((delta > 0) != (cur > 0))
+        {
+            return;
+        }
+
+        if ((delta > 0) &&
+            ((std::numeric_limits<T>::max() - cur) < delta))
+        {
+            std::ostringstream msg;
+            msg.imbue(std::locale::classic());
+            msg << "adding " << delta << " to " << cur
+                << " would cause an integer overflow";
+            throw std::range_error(msg.str());
+        }
+        else if ((delta < 0) &&
+            ((std::numeric_limits<T>::min() - cur) > delta))
+        {
+            std::ostringstream msg;
+            msg.imbue(std::locale::classic());
+            msg << "adding " << delta << " to " << cur
+                << " would cause an integer underflow";
+            throw std::range_error(msg.str());
+        }
     }
 };
 

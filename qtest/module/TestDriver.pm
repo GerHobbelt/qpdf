@@ -2,7 +2,7 @@
 #
 # This file is part of qtest.
 #
-# Copyright 1993-2020, Jay Berkenbilt
+# Copyright 1993-2021, Jay Berkenbilt
 #
 # QTest is distributed under the terms of version 2.0 of the Artistic
 # license which may be found in the source distribution.
@@ -118,7 +118,13 @@ sub get_tty_features
     eval
     {
 	require Term::ReadKey;
-	($ncols, undef, undef, undef) = Term::ReadKey::GetTerminalSize();
+        if (-t STDOUT)
+        {
+            # This prints error messages if STDOUT is not a tty, so
+            # check even if -stdout-tty=1 was given.
+            ($ncols, undef, undef, undef) =
+                Term::ReadKey::GetTerminalSize(\*STDOUT);
+        }
 	$got_size = 1;
     };
     if (! $got_size)
@@ -144,6 +150,10 @@ sub get_tty_features
 		close(X);
 	    }
 	};
+    }
+    if (! defined $ncols)
+    {
+        $ncols = 80;
     }
     eval
     {

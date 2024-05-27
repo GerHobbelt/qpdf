@@ -17,7 +17,7 @@ QPDFPageLabelDocumentHelper::QPDFPageLabelDocumentHelper(QPDF& qpdf) :
     if (root.hasKey("/PageLabels"))
     {
         this->m->labels = new QPDFNumberTreeObjectHelper(
-            root.getKey("/PageLabels"));
+            root.getKey("/PageLabels"), this->qpdf);
     }
 }
 
@@ -53,6 +53,7 @@ QPDFPageLabelDocumentHelper::getLabelForPage(long long page_idx)
     {
         start = St.getIntValue();
     }
+    QIntC::range_check(start, offset);
     start += offset;
     result = QPDFObjectHandle::newDictionary();
     result.replaceOrRemoveKey("/S", S);

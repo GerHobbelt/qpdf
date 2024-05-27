@@ -1,110 +1,149 @@
-Candidates for upcoming release
-===============================
+Document-level work
+===================
 
-* Trivial fixes:
-  * #470: odd/even -- doc bug
-  * #468: doc typo
-  * Remove travisci
-  * Update manual to clearly state qpdf's exit codes including mention
-    of not exiting with code 1.
+* QPDFPageCopier -- object for moving pages around within files or
+  between files and performing various transformations
 
-* Quick issues:
-  * #438: things written to stdout instead of stderr; --no-warn issues
-  * #454: integer overflow
-  * #451: BufferInputSource performance enhancement
-  * #432: WindowsCryptProvider fixes
+  * handle all the stuff of pages and split-pages
+  * do n-up, booklet, collation
+  * look through cli and see what else...flatten-*?
+  * See comments in QPDFPageDocumentHelper.hh for addPage -- search
+   for "a future version".
 
-* Easy build/test
-  * #429: cygwin build and openssl version (see #455)
-  * #455: openssl configure checks
-  * #453: improve openssl error messages
-  * #422: disable rpath when building RPM
-  * #352: building standalone executables (lambda layer)
-  * #460: potential malware in fuzzer seed corpus
+* See also issues tagged with "pages"
 
-* Fuzz crashes
-  * See "New" below
+* There is going to be a lot of duplicated code for doc-level stuff
+  between pages and split pages. That should be refactored. Perhaps
+  some kind of general method should be added to
+  QPDFPageDocumentHelper for copying a page from one file to another
+  and preserving document-level features. I will need to think about
+  how to make it efficient for bulk operations. Probably making it
+  work from qpdf.cc will be sufficient. I also need to think about how
+  to selectively turn on or off specific document-level features,
+  perhaps using flags or something.
 
-* Open "next" issues
-  * bugs
-    * #473: zsh completion with directories
-    * #459: locale-sensitivity
-    * #449: internal error with case to reproduce (from pikepdf)
-    * #444: concatenated stream/whitespace bug
-  * Non-bugs
-    * #446: recognize edited QDF files
-    * #436: parsing of document with form xobject
+* Add flags to CLI to select which document-level options to
+  preserve or not preserve. We will probably need a pair of mutually
+  exclusive, repeatable options with a way to specify all, none, only
+  {x,y}, or all but {x,y}.
 
-* Try migrating to github actions
+* If a page contains a reference a file attachment annotation, when
+  that page is copied, if the file attachment appears in the top-level
+  EmbeddedFiles tree, that entry should be preserved in the
+  destination file. Otherwise, we probably will require the use of
+  --copy-attachments-from to preserve these. What will the strategy be
+  for deduplicating in the automatic case?
 
-* Remember to check work `qpdf` project for private issues
-  * file with very slow page extraction
-  * big page even with --remove-unreferenced-resources=yes, even with --empty
-  * optimize image failure because of colorspace
+Text Appearance Streams
+=======================
 
-* Make it possible for StreamDataProvider to modify the stream
-  dictionary in addition to the stream data so it can calculate things
-  about the dictionary at runtime. Will require a small change to
-  QPDFWriter.
+This is a list of known issues with text appearance streams and things
+we might do about it.
 
-* Take flattenRotation code from pdf-split and do something with it,
-  maybe adding it to the library. Once there, call it from pdf-split
-  and bump up the required version of qpdf.
+* For variable text, the spec says to pull any resources from /DR that
+  are referenced in /DA but if the resource dictionary already has
+  that resource, just use the one that's there. The current code looks
+  only for /Tf and adds it if needed. We might want to instead merge
+  /DR with resources and then remove anything that's unreferenced. We
+  have all the code required for that in ResourceFinder except
+  TfFinder also gets the font size, which ResourceFinder doesn't do.
 
-* Externalize inline images doesn't walk into form XObjects. In
-  general:
+* There are things we are missing because we don't look at font
+  metrics. The code from TextBuilder (work) has almost everything in
+  it that is required. Once we have knowledge of character widths, we
+  can support quadding and multiline text fields (/Ff 4096), and we
+  can potentially squeeze text to fit into a field. For multiline,
+  first squeeze vertically down to the font height, then squeeze
+  horizontally with Tz. For single line, squeeze horizontally with Tz.
+  If we use Tz, issue a warning.
 
-  * Check QPDFPageObjectHelper and see what can be applied to form
-    XObjects. Maybe think about generalizing it to work with form
-    XObjects.
-
-  * There is an increasing amount of logic in qpdf.cc that should
-    probably move into the library. This includes externalizing inline
-    images and page splitting as those operations become more
-    elaborate, particularly with handling of form XObjects.
-
-* Flattening of form XObjects seems like something that would be
-  useful in the library. We are seeing more cases of completely valid
-  PDF files with form XObjects that cause problems in other software.
-  Flattening of form XObjects could be a useful way to work around
-  those issues or to prepare files for additional processing, making
-  it possible for users of the qpdf library to not be concerned about
-  form XObjects. This could be done recursively; i.e., we could have a
-  method to embed a form XObject into whatever contains it, whether
-  that is a form XObject or a page. This would require more
-  significant interpretation of the content stream. We would need a
-  test file in which the placement of the form XObject has to be in
-  the right place, e.g., the form XObject partially obscures earlier
-  code and is partially obscured by later code.
-
-* See if the tokenizer is a performance bottleneck and, if so,
-  optimize it. We might end up with a high-performance tokenizer that
-  has a different interface but still ultimately creates the same
-  tokens.
-
-* See about tying lgtm.com into qpdf's CI.
-
+* When mapping characters to widths, we will need to care about
+  character encoding. For built-in fonts, we can create a map from
+  Unicode code point to width and then go from the font's encoding to
+  unicode to the width. Get rid of "ugly switch statements" in
+  QUtil.cc and replace with static map initializers. See
+  misc/character-encoding/ (not on github) and font metric information
+  for the 14 standard fonts in my local pdf-spec directory.
 
 Fuzz Errors
 ===========
 
 * https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=<N>
 
-* New:
-  * 23172: stack overflow (https://oss-fuzz.com/testcase-detail/5719543787028480)
-  * 23599: integer overflow: https://oss-fuzz.com/testcase?key=6290807920525312
-  * 23642: leak: https://oss-fuzz.com/testcase-detail/4906569690251264
-
 * Ignoring these:
-  * Problems inside the jpeg library: 15470, 15751, 18633, 18732,
-    18745, 20391, 23581
   * Timeout: 15471, 17630
+  * Out of memory: 15470
 
-Windows Build
-=============
+GitHub Actions
+==============
 
-Update the Windows build so that it uses current versions of external
-libraries and uses either gnutls or openssl as its crypto provider.
+* Actions are triggered on push to main and master. When we eventually
+  rename master to main, make sure the reference to master is removed
+  from .github/workflows/*.yml.
+
+* At the time of migrating from Azure Pipelines to GitHub Actions
+  (2020-10), there was no standard test result publisher (to replace
+  the PublishTestResults@2 task). There are some third-party actions,
+  but I'd rather not depend on them. Keep an eye open for this coming
+  to GitHub Actions.
+
+External Libraries
+==================
+
+Current state (10.0.2):
+
+* qpdf/external-libs repository builds external-libs on a schedule.
+  It detects and downloads the latest versions of zlib, jpeg, and
+  openssl and creates source and binary distribution zip files in an
+  artifact called "distribution".
+
+* Releases in qpdf/external-libs are made manually. They contain
+  qpdf-external-libs-{bin,src}.zip.
+
+* The qpdf build finds the latest non-prerelease release and downloads
+  the qpdf-external-libs-*.zip files from the releases in the setup
+  stage.
+
+* To upgrade to a new version of external-libs, create a new release
+  of qpdf/external-libs (see README-maintainer in external-libs) from
+  the distribution artifact of the most recent successful build after
+  ensuring that it works.
+
+Desired state:
+
+* The qpdf/external-libs repository should create release candidates.
+  Ideally, every scheduled run would make its zip files available. A
+  personal access token with actions:read scope for the
+  qpdf/external-libs repository is required to download the artifact
+  from an action run, and qpdf/qpdf's secrets.GITHUB_TOKEN doesn't
+  have this access. We could create a service account for this
+  purpose. As an alternative, we could have a draft release in
+  qpdf/external-libs that the qpdf/external-libs build could update
+  with each candidate. It may also be possible to solve this by
+  developing a simple GitHub app.
+
+* Scheduled runs of the qpdf build in the qpdf/qpdf repository (not a
+  fork or pull request) could download external-libs from the release
+  candidate area instead of the latest stable release. Pushes to the
+  build branch should still use the latest release so it always
+  matches the main branch.
+
+* Periodically, we would create a release of external-libs from the
+  release candidate zip files. This could be done safely because we
+  know the latest qpdf works with it. This could be done at least
+  before every release of qpdf, but potentially it could be done at
+  other times, such as when a new dependency version is available or
+  after some period of time.
+
+Other notes:
+
+* The external-libs branch in qpdf/qpdf was never documented. We might
+  be able to get away with deleting it.
+
+* See README-maintainer in qpdf/external-libs for information on
+  creating a release. This could be at least partially scripted in a
+  way that works for the qpdf/qpdf repository as well since they are
+  very similar.
 
 ABI Changes
 ===========
@@ -112,31 +151,24 @@ ABI Changes
 This is a list of changes to make next time there is an ABI change.
 Comments appear in the code prefixed by "ABI"
 
-C++-11
-======
-
-* Search for ::iterator and ::const_iterator and replace with either
-  auto or foreach-style iteration.
-
-* There may be some places where std::function and lambdas can
-  simplify handlers rather than using classes with apply methods.
-
-* My c++11 branch adds re-implements PointerHolder so that it is
-  interchangeable with std::shared_ptr. We may not actually want to
-  ever do this because it turns out PointerHolder is slightly more
-  performant than std::shared_ptr, at least as of g++ 9.2.1. It is not
-  actually possible to just replace PointerHolder with std::shared_ptr
-  for two reasons: there is no automatic creation of
-  std::shared_ptr<T> from T* like there is for PointerHolder, which
-  breaks some code, and also there is no automatic conversion from
-  something like std::vector<PointerHolder<T>> to
-  std::vector<std::shared_ptr<T>>. It may be a good idea to replace
-  PointerHolder with std::shared_ptr in the API even if it requires
-  some work for the developer, but even if that isn't worth it, we
-  should find all occurrences of PointerHolder within the code and
-  replace with std::shared_ptr or std::unique_ptr as needed. This will
-  definitely break binary compatibility as the PointerHolder<Members>
-  pattern is part of the ABI for almost every class.
+* Search for ABI to find items not listed here.
+* Merge two versions of QPDFObjectHandle::makeDirect per comment
+* After removing legacy QPDFNameTreeObjectHelper and
+  QPDFNumberTreeObjectHelper constructors, NNTreeImpl can switch to
+  having a QPDF reference and assume that the reference is always
+  valid.
+* Use `= delete` and `= default` for constructors and destructors
+  where possible
+* Consider having setters return Class& where possible to allow for
+  use of fluent interfaces
+* Consider having addArrayItem, replaceKey, etc. return the new value
+  so you can say
+  auto oh = dict.replaceKey("/Key", QPDFObjectHandle::newSomething());
+* Added QPDFObjectHandle::ParserCallbacks::handleWarning but had to
+  revert because it was not binary compatible. Consider re-adding. The
+  commit that added this comment includes the reverting of the change.
+  The previous commit removes the code that was calling and using
+  handleWarning.
 
 Page splitting/merging
 ======================
@@ -199,33 +231,6 @@ Page splitting/merging
    https://mail.google.com/mail/u/0/#search/rfc822msgid%3A02aa01d3d013%249f766990%24de633cb0%24%40mono.hr)
 
  * Form fields: should be similar to outlines.
-
-MSVC Wildcard Expansion
-=======================
-
-(This section is referenced in azure_pipelines.yml.)
-
-The qpdf executable built with msvc is linked with setargv.obj or
-wsetargv.obj so that wildcard expansion works. It doesn't work exactly
-the way a UNIX system would work in that the program itself does the
-expansion (rather than the shell), which means that invoking qpdf.exe
-as built by msvc will expand "*.pdf" just as it will expand *.pdf. In
-some earlier versions, wildcard expansion didn't work with the msvc
-executable. The way to make this work appears to be different in some
-versions of MSVC than in others. As such, if upgrading MSVC or
-changing the build environment, the wildcard expansion behavior of the
-qpdf executable in Windows should be retested manually.
-
-Unfortunately, there is no automated test for wildcard expansion with
-MSVC because I can't figure out how to prevent qtest from expanding
-the wildcards before passing them in, and explicitly running "cmd /c
-..." from qtest doesn't seem to work in Azure Pipelines, though I can
-make it work locally.
-
-Ideally, we should figure out a way to test this in CI by having a
-test that fails if wildcard expansion is broken. In the absence of
-this, it will be necessary to test the behavior manually in both mingw
-and msvc when run from cmd and from msys bash.
 
 Performance
 ===========
@@ -314,9 +319,34 @@ General
 NOTE: Some items in this list refer to files in my personal home
 directory or that are otherwise not publicly accessible. This includes
 things sent to me by email that are specifically not public. Even so,
-I find it useful to make reference to them in this list
+I find it useful to make reference to them in this list.
 
- * Add support for writing name and number trees
+ * Consider updating the fuzzer with code that exercises
+   copyAnnotations, file attachments, and name and number trees. Check
+   fuzzer coverage.
+
+ * Add code for creation of a file attachment annotation. It should
+   also be possible to create a widget annotation and a form field.
+   Update the pdf-attach-file.cc example with new APIs when ready.
+
+ * If I do more with json, take a look at this C++ header-only JSON
+   library: https://github.com/nlohmann/json/releases
+
+ * Flattening of form XObjects seems like something that would be
+   useful in the library. We are seeing more cases of completely valid
+   PDF files with form XObjects that cause problems in other software.
+   Flattening of form XObjects could be a useful way to work around
+   those issues or to prepare files for additional processing, making
+   it possible for users of the qpdf library to not be concerned about
+   form XObjects. This could be done recursively; i.e., we could have a
+   method to embed a form XObject into whatever contains it, whether
+   that is a form XObject or a page. This would require more
+   significant interpretation of the content stream. We would need a
+   test file in which the placement of the form XObject has to be in
+   the right place, e.g., the form XObject partially obscures earlier
+   code and is partially obscured by later code. Keys in the resource
+   dictionary may need to be changed -- create test cases with lots of
+   duplicated/overlapping keys.
 
  * Figure out how to render Gajić correctly in the PDF version of the
    qpdf manual.
@@ -324,12 +354,11 @@ I find it useful to make reference to them in this list
  * Investigate whether there is a way to automate the memory checker
    tests for Windows.
 
- * Support user-pluggable stream filters.  This would enable external
-   code to provide interpretation for filters that are missing from
-   qpdf.  Make it possible for user-provided filters to override
-   built-in filters.  Make sure that the pluggable filters can be
-   prioritized so that we can poll all registered filters to see
-   whether they are capable of filtering a particular stream.
+ * Part of closed_file_input_source.cc is disabled on Windows because
+   of odd failures. It might be worth investigating so we can fully
+   exercise this in the test suite. That said, ClosedFileInputSource
+   is exercised elsewhere in qpdf's test suite, so this is not that
+   pressing.
 
  * If possible, consider adding CCITT3, CCITT4, or any other easy
    filters. For some reference code that we probably can't use but may
@@ -342,6 +371,10 @@ I find it useful to make reference to them in this list
       endobj collides with the start of the next object
 
     - See ../misc/broken-files
+
+    - See ../misc/bad-files-issue-476. This directory contains a
+      snapshot of the google doc and linked PDF files from issue #476.
+      Please see the issue for details.
 
  * Additional form features
    * set value from CLI? Specify title, and provide way to
@@ -479,25 +512,13 @@ I find it useful to make reference to them in this list
    http://multivalent.sourceforge.net/Tools/pdf/Extract.html
    http://multivalent.sourceforge.net/Tools/pdf/Embed.html
 
- * The description of Crypt filters is unclear with respect to how to
-   use them to override /StmF for specific streams.  I'm not sure
-   whether qpdf will do the right thing for any specific individual
-   streams that might have crypt filters, but I believe it does based
-   on my testing of a limited subset.  The specification seems to imply
-   that only embedded file streams and metadata streams can have crypt
-   filters, and there are already special cases in the code to handle
-   those.  Most likely, it won't be a problem, but someday someone may
-   find a file that qpdf doesn't work on because of crypt filters.
-   There is an example in the spec of using a crypt filter on a
-   metadata stream.
-
-   For now, we notice /Crypt filters and decode parameters consistent
-   with the example in the PDF specification, and the right thing
-   happens for metadata filters that happen to be uncompressed or
-   otherwise compressed in a way we can filter.  This should handle
-   all normal cases, but it's more or less just a guess since I don't
-   have any test files that actually use stream-specific crypt filters
-   in them.
+ * Qpdf does not honor /EFF when adding new file attachments. When it
+   encrypts, it never generates streams with explicit crypt filters.
+   Prior to 10.2, there was an incorrect attempt to treat /EFF as a
+   default value for decrypting file attachment streams, but it is not
+   supposed to mean that. Instead, it is intended for conforming
+   writers to obey this when adding new attachments. Qpdf is not a
+   conforming writer in that respect.
 
  * The second xref stream for linearized files has to be padded only
    because we need file_size as computed in pass 1 to be accurate.  If
@@ -549,14 +570,64 @@ I find it useful to make reference to them in this list
    by making it possible to run the lexer (tokenizer) over a whole
    file. Make it possible to replace all strings in a file lexically
    even on badly broken files. Ideally this should work files that are
-   lacking xref, have broken links, etc., and ideally it should work
-   with encrypted files if possible. This should go through the
-   streams and strings and replace them with fixed or random
-   characters, preferably, but not necessarily, in a manner that works
-   with fonts. One possibility would be to detect whether a string
-   contains characters with normal encoding, and if so, use 0x41. If
-   the string uses character maps, use 0x01. The output should
-   otherwise be unrelated to the input. This could be built after the
-   filtering and tokenizer rewrite and should be done in a manner that
-   takes advantage of the other lexical features. This sanitizer
-   should also clear metadata and replace images.
+   lacking xref, have broken links, duplicated dictionary keys, syntax
+   errors, etc., and ideally it should work with encrypted files if
+   possible. This should go through the streams and strings and
+   replace them with fixed or random characters, preferably, but not
+   necessarily, in a manner that works with fonts. One possibility
+   would be to detect whether a string contains characters with normal
+   encoding, and if so, use 0x41. If the string uses character maps,
+   use 0x01. The output should otherwise be unrelated to the input.
+   This could be built after the filtering and tokenizer rewrite and
+   should be done in a manner that takes advantage of the other
+   lexical features. This sanitizer should also clear metadata and
+   replace images. If I ever do this, the file from issue #494 would
+   be a great one to look at.
+
+ * Here are some notes about having stream data providers modify
+   stream dictionaries. I had wanted to add this functionality to make
+   it more efficient to create stream data providers that may
+   dynamically decide what kind of filters to use and that may end up
+   modifying the dictionary conditionally depending on the original
+   stream data. Ultimately I decided not to implement this feature.
+   This paragraph describes why.
+
+   * When writing, the way objects are placed into the queue for
+     writing strongly precludes creation of any new indirect objects,
+     or even changing which indirect objects are referenced from which
+     other objects, because we sometimes write as we are traversing
+     and enqueuing objects. For non-linearized files, there is a risk
+     that an indirect object that used to be referenced would no
+     longer be referenced, and whether it was already written to the
+     output file would be based on an accident of where it was
+     encountered when traversing the object structure. For linearized
+     files, the situation is considerably worse. We decide which
+     section of the file to write an object to based on a mapping of
+     which objects are used by which other objects. Changing this
+     mapping could cause an object to appear in the wrong section, to
+     be written even though it is unreferenced, or to be entirely
+     omitted since, during linearization, we don't enqueue new objects
+     as we traverse for writing.
+
+   * There are several places in QPDFWriter that query a stream's
+     dictionary in order to prepare for writing or to make decisions
+     about certain aspects of the writing process. If the stream data
+     provider has the chance to modify the dictionary, every piece of
+     code that gets stream data would have to be aware of this. This
+     would potentially include end user code. For example, any code
+     that called getDict() on a stream before installing a stream data
+     provider and expected that dictionary to be valid would
+     potentially be broken. As implemented right now, you must perform
+     any modifications on the dictionary in advance and provided
+     /Filter and /DecodeParms at the time you installed the stream
+     data provider. This means that some computations would have to be
+     done more than once, but for linearized files, stream data
+     providers are already called more than once. If the work done by
+     a stream data provider is especially expensive, it can implement
+     its own cache.
+
+   The example examples/pdf-custom-filter.cc demonstrates the use of
+   custom stream filters. This includes a custom pipeline, a custom
+   stream filter, as well as modification of a stream's dictionary to
+   include creation of a new stream that is referenced from
+   /DecodeParms.

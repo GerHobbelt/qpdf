@@ -33,6 +33,7 @@ SRCS_libqpdf = \
 	libqpdf/InsecureRandomDataProvider.cc \
 	libqpdf/JSON.cc \
 	libqpdf/MD5.cc \
+	libqpdf/NNTree.cc \
 	libqpdf/OffsetInputSource.cc \
 	libqpdf/Pipeline.cc \
 	libqpdf/Pl_AES_PDF.cc \
@@ -57,7 +58,10 @@ SRCS_libqpdf = \
 	libqpdf/QPDFAcroFormDocumentHelper.cc \
 	libqpdf/QPDFAnnotationObjectHelper.cc \
 	libqpdf/QPDFCryptoProvider.cc \
+	libqpdf/QPDFEFStreamObjectHelper.cc \
+	libqpdf/QPDFEmbeddedFileDocumentHelper.cc \
 	libqpdf/QPDFExc.cc \
+	libqpdf/QPDFFileSpecObjectHelper.cc \
 	libqpdf/QPDFFormFieldObjectHelper.cc \
 	libqpdf/QPDFMatrix.cc \
 	libqpdf/QPDFNameTreeObjectHelper.cc \
@@ -70,6 +74,7 @@ SRCS_libqpdf = \
 	libqpdf/QPDFPageDocumentHelper.cc \
 	libqpdf/QPDFPageLabelDocumentHelper.cc \
 	libqpdf/QPDFPageObjectHelper.cc \
+	libqpdf/QPDFStreamFilter.cc \
 	libqpdf/QPDFSystemError.cc \
 	libqpdf/QPDFTokenizer.cc \
 	libqpdf/QPDFWriter.cc \
@@ -93,7 +98,9 @@ SRCS_libqpdf = \
 	libqpdf/QTC.cc \
 	libqpdf/QUtil.cc \
 	libqpdf/RC4.cc \
+	libqpdf/ResourceFinder.cc \
 	libqpdf/SecureRandomDataProvider.cc \
+	libqpdf/SF_FlateLzwDecode.cc \
 	libqpdf/SparseOHArray.cc \
 	libqpdf/qpdf-c.cc
 

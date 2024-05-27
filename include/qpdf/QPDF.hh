@@ -1,4 +1,4 @@
-// Copyright (c) 2005-2020 Jay Berkenbilt
+// Copyright (c) 2005-2021 Jay Berkenbilt
 //
 // This file is part of qpdf.
 //
@@ -31,6 +31,8 @@
 #include <list>
 #include <iostream>
 #include <vector>
+#include <functional>
+#include <memory>
 
 #include <qpdf/QIntC.hh>
 #include <qpdf/QPDFExc.hh>
@@ -39,6 +41,7 @@
 #include <qpdf/QPDFXRefEntry.hh>
 #include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QPDFTokenizer.hh>
+#include <qpdf/QPDFStreamFilter.hh>
 #include <qpdf/Buffer.hh>
 #include <qpdf/InputSource.hh>
 
@@ -132,6 +135,20 @@ class QPDF
     QPDF_DLL
     void emptyPDF();
 
+    // From 10.1: register a new filter implementation for a specific
+    // stream filter. You can add your own implementations for new
+    // filter types or override existing ones provided by the library.
+    // Registered stream filters are used for decoding only as you can
+    // override encoding with stream data providers. For example, you
+    // could use this method to support for one of the other filter
+    // types by using additional third-party libraries that qpdf does
+    // not presently use. The standard filters are implemented using
+    // QPDFStreamFilter classes.
+    QPDF_DLL
+    static void registerStreamFilter(
+        std::string const& filter_name,
+        std::function<std::shared_ptr<QPDFStreamFilter> ()> factory);
+
     // Parameter settings
 
     // By default, warning messages are issued to std::cerr and output
@@ -219,6 +236,11 @@ class QPDF
     QPDF_DLL
     bool anyWarnings() const;
 
+    // Indicate the number of warnings that have been issued so far.
+    // Does not clear the list of warnings.
+    QPDF_DLL
+    size_t numWarnings() const;
+
     // Return an application-scoped unique ID for this QPDF object.
     // This is not a globally unique ID. It is constructing using a
     // timestamp and a random number and is intended to be unique
@@ -228,6 +250,12 @@ class QPDF
     // long-term purposes.
     QPDF_DLL
     unsigned long long getUniqueId() const;
+
+    // Issue a warning on behalf of this QPDF object. It will be
+    // emitted with other warnings, following warning suppression
+    // rules, and it will be available with getWarnings().
+    QPDF_DLL
+    void warn(QPDFExc const& e);
 
     QPDF_DLL
     std::string getFilename() const;
@@ -255,34 +283,26 @@ class QPDF
     QPDFObjectHandle getObjectByID(int objid, int generation);
 
     // Replace the object with the given object id with the given
-    // object.  The object handle passed in must be a direct object,
+    // object. The object handle passed in must be a direct object,
     // though it may contain references to other indirect objects
-    // within it.  Calling this method can have somewhat confusing
-    // results.  Any existing QPDFObjectHandle instances that point to
-    // the old object and that have been resolved (which happens
-    // automatically if you access them in any way) will continue to
-    // point to the old object even though that object will no longer
-    // be associated with the PDF file.  Note that replacing an object
-    // with QPDFObjectHandle::newNull() effectively removes the object
-    // from the file since a non-existent object is treated as a null
-    // object.  To replace a reserved object, call replaceReserved
+    // within it. Prior to qpdf 10.2.1, after calling this method,
+    // existing QPDFObjectHandle instances that pointed to the
+    // original object still pointed to the original object, resulting
+    // in confusing and incorrect behavior. This was fixed in 10.2.1,
+    // so existing QPDFObjectHandle objects will start pointing to the
+    // newly replaced object. Note that replacing an object with
+    // QPDFObjectHandle::newNull() effectively removes the object from
+    // the file since a non-existent object is treated as a null
+    // object. To replace a reserved object, call replaceReserved
     // instead.
     QPDF_DLL
     void replaceObject(QPDFObjGen const& og, QPDFObjectHandle);
     QPDF_DLL
     void replaceObject(int objid, int generation, QPDFObjectHandle);
 
-    // Swap two objects given by ID.  Calling this method can have
-    // confusing results.  After swapping two objects, existing
-    // QPDFObjectHandle instances that reference them will still
-    // reference the same underlying objects, at which point those
-    // existing QPDFObjectHandle instances will have incorrect
-    // information about the object and generation number of those
-    // objects.  While this does not necessarily cause a problem, it
-    // can certainly be confusing.  It is therefore recommended that
-    // you replace any existing QPDFObjectHandle instances that point
-    // to the swapped objects with new ones, possibly by calling
-    // getObjectByID.
+    // Swap two objects given by ID. Prior to qpdf 10.2.1, existing
+    // QPDFObjectHandle instances that reference them objects not
+    // notice the swap, but this was fixed in 10.2.1.
     QPDF_DLL
     void swapObjects(QPDFObjGen const& og1, QPDFObjGen const& og2);
     QPDF_DLL
@@ -547,16 +567,28 @@ class QPDF
     // QPDF_optimization.cc
 
     // The object_stream_data map maps from a "compressed" object to
-    // the object stream that contains it.  This enables optimize to
+    // the object stream that contains it. This enables optimize to
     // populate the object <-> user maps with only uncompressed
-    // objects.  If allow_changes is false, an exception will be
-    // thrown if any changes are made during the optimization process.
-    // This is available so that the test suite can make sure that a
-    // linearized file is already optimized.  When called in this way,
-    // optimize() still populates the object <-> user maps
+    // objects. If allow_changes is false, an exception will be thrown
+    // if any changes are made during the optimization process. This
+    // is available so that the test suite can make sure that a
+    // linearized file is already optimized. When called in this way,
+    // optimize() still populates the object <-> user maps. The
+    // optional skip_stream_parameters parameter, if present, is
+    // called for each stream object. The function should return 2 if
+    // optimization should discard /Length, /Filter, and /DecodeParms;
+    // 1 if it should discard /Length, and 0 if it should preserve all
+    // keys. This is used by QPDFWriter to avoid creation of dangling
+    // objects for stream dictionary keys it will be regenerating.
     QPDF_DLL
     void optimize(std::map<int, int> const& object_stream_data,
 		  bool allow_changes = true);
+    // ABI: make function optional and merge overloaded versions
+    QPDF_DLL
+    void optimize(
+        std::map<int, int> const& object_stream_data,
+        bool allow_changes,
+        std::function<int(QPDFObjectHandle&)> skip_stream_parameters);
 
     // Traverse page tree return all /Page objects. It also detects
     // and resolves cases in which the same /Page object is
@@ -596,7 +628,8 @@ class QPDF
     // identical to the identically named methods there, except that
     // these versions use QPDFObjectHandle instead of
     // QPDFPageObjectHelper, so please see comments in that file for
-    // descriptions.
+    // descriptions. There are subtleties you need to know about, so
+    // please look at the comments there.
     QPDF_DLL
     void pushInheritedAttributesToPage();
     QPDF_DLL
@@ -662,21 +695,28 @@ class QPDF
 	{
 	    return qpdf->resolve(objid, generation);
 	}
+        static bool objectChanged(
+            QPDF* qpdf, QPDFObjGen const& og, PointerHolder<QPDFObject>& oph)
+        {
+            return qpdf->objectChanged(og, oph);
+        }
     };
     friend class Resolver;
 
-    // Warner class allows QPDFObjectHandle to create warnings
-    class Warner
+    // StreamCopier class is restricted to QPDFObjectHandle so it can
+    // copy stream data.
+    class StreamCopier
     {
 	friend class QPDFObjectHandle;
-        friend class QPDF_Stream;
       private:
-        static void warn(QPDF* qpdf, QPDFExc const& e)
-        {
-            qpdf->warn(e);
-        }
+	static void copyStreamData(QPDF* qpdf,
+                                   QPDFObjectHandle const& dest,
+                                   QPDFObjectHandle const& src)
+	{
+	    qpdf->copyStreamData(dest, src);
+	}
     };
-    friend class Warner;
+    friend class Resolver;
 
     // ParseGuard class allows QPDFObjectHandle to detect re-entrant
     // resolution
@@ -792,7 +832,6 @@ class QPDF
             int foreign_generation,
             qpdf_offset_t offset,
             size_t length,
-            bool is_attachment_stream,
             QPDFObjectHandle local_dict);
 
       private:
@@ -802,7 +841,6 @@ class QPDF
         int foreign_generation;
         qpdf_offset_t offset;
         size_t length;
-        bool is_attachment_stream;
         QPDFObjectHandle local_dict;
     };
 
@@ -866,7 +904,6 @@ class QPDF
 
     void parse(char const* password);
     void inParse(bool);
-    void warn(QPDFExc const& e);
     void setTrailer(QPDFObjectHandle obj);
     void read_xref(qpdf_offset_t offset);
     void reconstruct_xref(QPDFExc& e);
@@ -896,9 +933,9 @@ class QPDF
 	qpdf_offset_t offset, std::string const& description,
 	int exp_objid, int exp_generation,
 	int& act_objid, int& act_generation);
+    bool objectChanged(QPDFObjGen const& og, PointerHolder<QPDFObject>& oph);
     PointerHolder<QPDFObject> resolve(int objid, int generation);
     void resolveObjectsInStream(int obj_stream_number);
-    void findAttachmentStreams();
     void stopOnError(std::string const& message);
 
     // Calls finish() on the pipeline when done but does not delete it
@@ -917,7 +954,6 @@ class QPDF
                                int objid, int generation,
                                qpdf_offset_t offset, size_t length,
                                QPDFObjectHandle dict,
-                               bool is_attachment_stream,
                                Pipeline* pipeline,
                                bool suppress_warnings,
                                bool will_retry);
@@ -980,7 +1016,7 @@ class QPDF
         PointerHolder<InputSource> file,
         QPDF& qpdf_for_warning, Pipeline*& pipeline,
         int objid, int generation,
-	QPDFObjectHandle& stream_dict, bool is_attachment_stream,
+	QPDFObjectHandle& stream_dict,
 	std::vector<PointerHolder<Pipeline> >& heap);
 
     // Methods to support object copying
@@ -988,6 +1024,8 @@ class QPDF
                         bool top);
     QPDFObjectHandle replaceForeignIndirectObjects(
         QPDFObjectHandle foreign, ObjCopier& obj_copier, bool top);
+    void copyStreamData(
+        QPDFObjectHandle dest_stream, QPDFObjectHandle src_stream);
 
     // Linearization Hint table structures.
     // Naming conventions:
@@ -1339,9 +1377,14 @@ class QPDF
 	std::vector<QPDFObjectHandle>& all_pages,
 	bool allow_changes, bool warn_skipped_keys,
         std::set<QPDFObjGen>& visited);
-    void updateObjectMaps(ObjUser const& ou, QPDFObjectHandle oh);
-    void updateObjectMapsInternal(ObjUser const& ou, QPDFObjectHandle oh,
-				  std::set<QPDFObjGen>& visited, bool top);
+    void updateObjectMaps(
+        ObjUser const& ou, QPDFObjectHandle oh,
+        std::function<int(QPDFObjectHandle&)> skip_stream_parameters);
+    void updateObjectMapsInternal(
+        ObjUser const& ou, QPDFObjectHandle oh,
+        std::function<int(QPDFObjectHandle&)> skip_stream_parameters,
+        std::set<QPDFObjGen>& visited, bool top,
+        int depth);
     void filterCompressedObjects(std::map<int, int> const& object_stream_data);
 
     // Type conversion helper methods
@@ -1396,12 +1439,13 @@ class QPDF
         PointerHolder<QPDFObjectHandle::StreamDataProvider> copied_streams;
         // copied_stream_data_provider is owned by copied_streams
         CopiedStreamDataProvider* copied_stream_data_provider;
-        std::set<QPDFObjGen> attachment_streams;
         bool reconstructed_xref;
         bool fixed_dangling_refs;
         bool immediate_copy_from;
         bool in_parse;
         bool parsed;
+        std::set<int> resolved_object_streams;
+        bool ever_replaced_objects;
 
         // Linearization data
         qpdf_offset_t first_xref_item_offset; // actual value from file

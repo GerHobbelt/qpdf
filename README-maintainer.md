@@ -5,20 +5,20 @@
 Default:
 
 ```
-./configure CXX="g++ --std=c++11" --enable-werror
+./configure CXX="g++ --std=c++14" --enable-werror
 ```
 
 Debugging:
 
 ```
-./configure CXX="g++ --std=c++11" CFLAGS="-g" CXXFLAGS="-g" \
+./configure CXX="g++ --std=c++14" CFLAGS="-g" CXXFLAGS="-g" \
    --enable-werror --disable-shared
 ```
 
 Profiling:
 
 ```
-./configure CXX="g++ --std=c++11" CFLAGS="-g -pg" CXXFLAGS="-g -pg" \
+./configure CXX="g++ --std=c++14" CFLAGS="-g -pg" CXXFLAGS="-g -pg" \
    LDFLAGS="-pg" --enable-werror --disable-shared
 ```
 
@@ -30,7 +30,7 @@ Memory checks:
 ./configure CFLAGS="-fsanitize=address -fsanitize=undefined -g" \
    CXXFLAGS="-fsanitize=address -fsanitize=undefined -g" \
    LDFLAGS="-fsanitize=address -fsanitize=undefined" \
-   CC=clang CXX="clang++ --std=c++11" \
+   CC=clang CXX="clang++ --std=c++14" \
    --enable-werror --disable-shared
 ```
 
@@ -41,6 +41,11 @@ Memory checks:
 
 * qpdf project: https://github.com/google/oss-fuzz/tree/master/projects/qpdf
 
+* Adding new test cases: download the file from oss-fuzz and drop it
+  in fuzz/qpdf_extra/issue-number.fuzz. If not ready to include, it
+  can be stored anywhere, and the absolute path can be passed to the
+  reproduction code as described below.
+
 * To test locally, see https://github.com/google/oss-fuzz/tree/master/docs/,
   especially new_project_guide.md. Summary:
 
@@ -50,17 +55,17 @@ Memory checks:
   from a qpdf fork/branch rather than qpdf/master.
 
   ```
-  python infra/helper.py build_image --pull qpdf
-  python infra/helper.py build_fuzzers [ --sanitizer memory|undefined|address ] qpdf
-  python infra/helper.py check_build qpdf
-  python infra/helper.py build_fuzzers --sanitizer coverage qpdf
-  python infra/helper.py coverage qpdf
+  python3 infra/helper.py build_image --pull qpdf
+  python3 infra/helper.py build_fuzzers [ --sanitizer memory|undefined|address ] qpdf
+  python3 infra/helper.py check_build qpdf
+  python3 infra/helper.py build_fuzzers --sanitizer coverage qpdf
+  python3 infra/helper.py coverage qpdf
   ```
 
   To reproduce a test case, build with the correct sanitizer, then run
 
   ```
-  python infra/helper.py reproduce qpdf fuzzer testcase
+  python3 infra/helper.py reproduce qpdf <specific-fuzzer> testcase
   ```
 
   where fuzzer is the fuzzer used in the crash.
@@ -97,6 +102,14 @@ Memory checks:
 
 * Use QIntC for type conversions -- see casting policy in docs.
 
+* Remember to imbue ostringstreams with std::locale::classic() before
+  outputting numbers. This protects against the user's global locale
+  altering otherwise deterministic values. (See github issue #459.)
+  One could argue that error messages containing numbers should
+  respect the user's locale, but I think it's more important for
+  output to be consistent, since the messages in question are not
+  really targeted at the end user.
+
 * Use QPDF_DLL on all methods that are to be exported in the shared
   library/DLL. Use QPDF_DLL_CLASS for all classes whose type
   information is needed. This is important for exception classes and
@@ -109,9 +122,23 @@ Memory checks:
 
 # RELEASE PREPARATION
 
-* Each year, update copyright notices. Just do a case-insensitive
-  search for copyright. Don't forget copyright in manual. Also update
-  debian copyright in debian package. Last updated: 2020.
+* Each year, update copyright notices. This will find all relevant
+  places (assuming current copyright is from last year) except the
+  manual:
+
+  git --no-pager grep -i -n -P "copyright.*$(expr $(date +%Y) - 1).*berkenbilt"
+
+  Also update the copyright in these places:
+  * manual
+  * debian package -- search for copyright.*berkenbilt in debian/copyright
+  * qtest-driver, TestDriver.pm in qtest source
+
+  Copyright last updated: 2021.
+
+* Take a look at "External Libraries" in TODO to see if we need to
+  make any changes. There is still some automation work left to do, so
+  handling external-libs releases is still manual. See also
+  README-maintainer in external-libs.
 
 * Check for open fuzz crashes at https://oss-fuzz.com
 
@@ -123,6 +150,8 @@ Memory checks:
 
 * Check `TODO` file to make sure all planned items for the release are
   done or retargeted.
+
+* Check work `qpdf` project for private issues
 
 * Run a spelling checker over the source code to catch errors in
   variable names, strings, and comments.
@@ -140,16 +169,17 @@ Memory checks:
 
   For Windows, use a Windows style path, not an MSYS path for large files.
 
-* Test with clang. Pass `CC=clang CXX=clang++` to `./configure`. Test
-  with newer version of gcc if available.
+* Test with clang. Pass `CC=clang CXX=clang++` to `./configure`. (Done
+  in CI).
+
+* Test with newer version of gcc if available.
 
 * Test 32-bit. Pass `CC=i686-linux-gnu-gcc CXX=i686-linux-gnu-g++` to
   `./configure`. (Done in CI.)
 
 * Test build on a mac. (Done in CI.)
 
-* Test with address sanitizer as described above. (Done in CI with
-  gcc; test locally with clang.)
+* Test with address sanitizer as described above. (Done in CI.)
 
 * A small handful of additional files have been taken from autotools
   programs. These should probably be updated from time to time.
@@ -163,8 +193,8 @@ Memory checks:
   * Other files copied as indicated:
   
     ```
-    cp /usr/share/automake-1.11/install-sh .
-    cp /usr/share/automake-1.11/mkinstalldirs .
+    cp /usr/share/automake-1.16/install-sh .
+    cp /usr/share/automake-1.16/mkinstalldirs .
     cp /usr/share/aclocal/pkg.m4 m4
     ```
 
@@ -179,8 +209,28 @@ Memory checks:
   casting policy in the manual, and ensure that integer types are
   properly handled with QIntC or the appropriate cast.
 
-* Increment shared library version information as needed (`LT_*` in
-  `configure.ac`). Remember to rerun ./autogen.sh.
+* Update versions and shared library details
+
+  * Increment shared library version information as needed
+    (`LT_CURRENT` in `configure.ac`)
+
+  * Make sure version numbers are consistent in the following locations:
+    * configure.ac
+    * libqpdf/QPDF.cc
+    * manual/qpdf-manual.xml
+    * qpdf/qpdf.cc
+    `make_dist` verifies this consistency.
+
+  * Update release notes in manual. Look at diffs and ChangeLog.
+    Update release date in `manual/qpdf-manual.xml`. Remember to
+    ensure that the entities at the top of the document are consistent
+    with the release notes for both version and release date.
+
+  * Add a release entry to ChangeLog: "x.y.z: release"
+
+  * Run ./autogen.sh
+
+  * Commit title: "Prepare x.y.z release"
 
 * Performance test is included with binary compatibility steps. Even
   if releasing a new major release and not doing binary compatibility
@@ -193,7 +243,8 @@ Memory checks:
   * ./performance_check | tee -a /tmp/perf
   * ./configure --enable-werror && make -j$(nproc) build_libqpdf
   * Checkout the last release
-  * make -k check NO_REBUILD=1
+  * make -k check NO_REBUILD=1 (some failures are normal -- looking
+    for binary compatibility)
   * Check out the current version
   * make -j$(nproc)
   * ./performance_check | tee -a /tmp/perf
@@ -215,29 +266,13 @@ Memory checks:
   pytest -n auto
   ```
 
-* Update release notes in manual. Look at diffs and ChangeLog. Update
-  release date in `manual/qpdf-manual.xml`. Remember to ensure that
-  the entities at the top of the document are consistent with the
-  release notes for both version and release date.
-
-* Make sure version numbers are consistent in the following locations:
-  * configure.ac
-  * libqpdf/QPDF-cc.cc
-  * manual/qpdf-manual.xml
-  * qpdf/qpdf.cc
-  `make_dist` verifies this consistency.
-
-* Run ./autogen.sh
-
-* Add a release entry to ChangeLog.
-
 
 # CREATING A RELEASE
 
-* Push to master. The azure pipeline will create an artifact called
-  distribution which will contain all the distribution files. Download
-  these, verify the checksums from the job output, rename to remove
-  -ci from the names, and copy to the release archive area.
+* Push to master. This will create an artifact called distribution
+  which will contain all the distribution files. Download these,
+  verify the checksums from the job output, rename to remove -ci from
+  the names, and copy to the release archive area.
 
 * Sign the source distribution:
 
@@ -248,18 +283,19 @@ Memory checks:
 
 * Build and test the debian package
 
+* Add a calendar reminder to check the status of the debian package to
+  make sure it is transitioning properly and to resolve any issues.
+
 * Sign the releases. The release archive area should contain the
   Windows binaries, the AppImage, the source tarball, and the source
   tarball signature.
 
   ```
-  \rm -f *.{md5,sha1,sha512}
+  \rm -f *.sha256
   files=(*)
-  for i in md5 sha1 sha512; do
-    ${i}sum ${files[*]} >| qpdf-$version.$i
-    gpg --clearsign --armor qpdf-$version.$i
-    mv qpdf-$version.$i.asc qpdf-$version.$i
-  done
+  sha256sum ${files[*]} >| qpdf-$version.sha256
+  gpg --clearsign --armor qpdf-$version.sha256
+  mv qpdf-$version.sha256.asc qpdf-$version.sha256
   chmod 444 *
   chmod 555 *.AppImage
   ```
@@ -274,21 +310,18 @@ Memory checks:
   HEAD pointing to the tip of master.
 
   ```
-  git rev-parse master upstream/master @
+  git rev-parse upstream/master @
   git tag -s release-qpdf-$version @ -m"qpdf $version"
   git push upstream release-qpdf-$version
   ```
-
-* In Azure Pipelines, retain the build that was used to generate the
-  release.
 
 * Create a github release after pushing the tag. `gcurl` is an alias
   that includes the auth token.
 
   ```
   # Create release
-  TOKEN=$(cat ~/.github-token)
-  function gcurl() { curl -H "Authorization: token $TOKEN" ${1+"$@"}; }
+  GITHUB_TOKEN=$(qdata-show cred github-token)
+  function gcurl() { curl -H "Authorization: token $GITHUB_TOKEN" ${1+"$@"}; }
   url=$(gcurl -s -XPOST https://api.github.com/repos/qpdf/qpdf/releases -d'{"tag_name": "release-qpdf-'$version'", "name": "qpdf '$version'", "draft": true}' | jq -r '.url')
 
   # Get upload url
@@ -348,24 +381,8 @@ make build_manual
 make distclean
 ```
 
-To create a source release of external libs, do an export from the
-version control system into a directory called `qpdf-external-libs`
-and just make a zip file of the result called
-`qpdf-external-libs-src.zip`. See the README.txt file there for
-information on creating binary external libs releases. Run this from
-the external-libs repository:
-
-```
-git archive --prefix=external-libs/ HEAD . | (cd /tmp; tar xf -)
-cd /tmp
-zip -r qpdf-external-libs-src.zip external-libs
-```
-
-When releasing on sourceforge, `external-libs` distributions go in
-`external-libs/yyyymmdd`, and qpdf distributions go in `qpdf/vvv`.
-
 For local iteration on the AppImage generation, it works to just
-./azure-pipelines/build-appimage and get the resulting AppImage from
+./build-scripts/build-appimage and get the resulting AppImage from
 the distribution directory. You can also pass -e SKIP_TESTS=1
 build-appimage, which passes it along to to docker, to skip the test
 suite, which useful for rapid iteration.
