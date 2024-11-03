@@ -1168,6 +1168,9 @@ QPDFJob::doJSONAcroform(Pipeline* p, bool& first, QPDF& pdf)
         ++pagepos1;
         for (auto& aoh: afdh.getWidgetAnnotationsForPage(page)) {
             QPDFFormFieldObjectHelper ffh = afdh.getFieldForAnnotation(aoh);
+            if (!ffh.getObjectHandle().isDictionary()) {
+                continue;
+            }
             JSON j_field = j_fields.addArrayElement(JSON::makeDictionary());
             j_field.addDictionaryMember("object", ffh.getObjectHandle().getJSON(m->json_version));
             j_field.addDictionaryMember(
@@ -3081,10 +3084,9 @@ QPDFJob::writeOutfile(QPDF& pdf)
             try {
                 QUtil::remove_file(backup.c_str());
             } catch (QPDFSystemError& e) {
-                *m->log->getError()
-                    << m->message_prefix << ": unable to delete original file (" << e.what() << ");"
-                    << " original file left in " << backup
-                    << ", but the input was successfully replaced\n";
+                *m->log->getError() << m->message_prefix << ": unable to delete original file ("
+                                    << e.what() << ");" << " original file left in " << backup
+                                    << ", but the input was successfully replaced\n";
             }
         }
     }

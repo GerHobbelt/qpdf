@@ -1024,10 +1024,19 @@ class QPDF
     bool resolveXRefTable();
     void reconstruct_xref(QPDFExc& e);
     bool parse_xrefFirst(std::string const& line, int& obj, int& num, int& bytes);
-    bool parse_xrefEntry(std::string const& line, qpdf_offset_t& f1, int& f2, char& type);
+    bool read_xrefEntry(qpdf_offset_t& f1, int& f2, char& type);
+    bool read_bad_xrefEntry(qpdf_offset_t& f1, int& f2, char& type);
     qpdf_offset_t read_xrefTable(qpdf_offset_t offset);
     qpdf_offset_t read_xrefStream(qpdf_offset_t offset);
     qpdf_offset_t processXRefStream(qpdf_offset_t offset, QPDFObjectHandle& xref_stream);
+    std::pair<int, std::array<int, 3>>
+    processXRefW(QPDFObjectHandle& dict, std::function<QPDFExc(std::string_view)> damaged);
+    int processXRefSize(
+        QPDFObjectHandle& dict, int entry_size, std::function<QPDFExc(std::string_view)> damaged);
+    std::pair<int, std::vector<std::pair<int, int>>> processXRefIndex(
+        QPDFObjectHandle& dict,
+        int max_num_entries,
+        std::function<QPDFExc(std::string_view)> damaged);
     void insertXrefEntry(int obj, int f0, qpdf_offset_t f1, int f2);
     void insertFreeXrefEntry(QPDFObjGen);
     void insertReconstructedXrefEntry(int obj, qpdf_offset_t f1, int f2);
@@ -1343,6 +1352,15 @@ class QPDF
         std::string key; // if ou_trailer_key or ou_root_key
     };
 
+    struct UpdateObjectMapsFrame
+    {
+        UpdateObjectMapsFrame(ObjUser const& ou, QPDFObjectHandle oh, bool top);
+
+        ObjUser const& ou;
+        QPDFObjectHandle oh;
+        bool top;
+    };
+
     class PatternFinder: public InputSource::Finder
     {
       public:
@@ -1426,12 +1444,6 @@ class QPDF
         ObjUser const& ou,
         QPDFObjectHandle oh,
         std::function<int(QPDFObjectHandle&)> skip_stream_parameters);
-    void updateObjectMapsInternal(
-        ObjUser const& ou,
-        QPDFObjectHandle oh,
-        std::function<int(QPDFObjectHandle&)> skip_stream_parameters,
-        QPDFObjGen::set& visited,
-        bool top);
     void filterCompressedObjects(std::map<int, int> const& object_stream_data);
     void filterCompressedObjects(QPDFWriter::ObjTable const& object_stream_data);
 

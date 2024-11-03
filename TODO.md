@@ -2,7 +2,8 @@ Contents
 ========
 
 - [Always](#always)
-- [Next](#always)
+- [In Progress](#in-progress)
+- [Next](#next)
 - [Possible future JSON enhancements](#possible-future-json-enhancements)
 - [QPDFJob](#qpdfjob)
 - [Documentation](#documentation)
@@ -25,6 +26,28 @@ Always
   addition to regular issues.
 * When close to release, make sure external-libs is building and follow instructions in
   ../external-libs/README
+
+In Progress
+===========
+
+Modernize qpdf
+--------------
+
+Update code to make use of the facilities provided by C++17. In particular, replace early qpdf C-style code
+with modern equivalent. Key updates are:
+
+* use the standard library where appropriate
+* replace C-strings with std::string or std::string_view
+* replace raw pointer with smart pointers or standard library containers
+* replace std::string const& with std::string_view where appropriate
+* replace std::shared_ptr with std::unique_ptr or references to the underlying object where appropriate
+
+Next steps are:
+
+* review function signatures in the public API
+* replace code that uses QUtil::make_shared_cstr etc
+
+Except for the above, prefer to make modernization changes as part of other updates.
 
 Next
 ====
@@ -99,7 +122,7 @@ Documentation
 
 * Do a full pass through the documentation.
 
-  * Make sure `qpdf` is consistent. Use QPDF when just referring to the package.
+  * Make sure `qpdf` is consistent. Use qpdf when just referring to the package.
   * Make sure markup is consistent
   * Autogenerate where possible
   * Consider which parts might be good candidates for moving to the wiki.
@@ -337,7 +360,7 @@ so, I find it useful to make reference to them in this list.
   an object. I think qpdf must handle generations correctly, but make sure to test this carefully.
 
   Note that there's nothing that says an indirect object in one update can't refer to an object that
-  doesn't appear until a later update. This means that QPDF has to hang onto indirect nulls,
+  doesn't appear until a later update. This means that qpdf has to hang onto indirect nulls,
   including when they appear as dictionary values. In this case, QPDF_Dictionary::getKeys() ignores
   all keys with null values, and hasKey() returns false for keys that have null values. QPDF_Dictionary
   already handles the special case of keys that are indirect nulls, which is used to reserve foreign
@@ -431,7 +454,7 @@ so, I find it useful to make reference to them in this list.
 
 * Support for handling file names with Unicode characters in Windows is incomplete. qpdf seems to
   support them okay from a functionality standpoint, and the right thing happens if you pass in
-  UTF-8 encoded filenames to QPDF library routines in Windows (they are converted internally to
+  UTF-8 encoded filenames to qpdf library routines in Windows (they are converted internally to
   wchar_t*), but file names are encoded in UTF-8 on output, which doesn't produce nice error
   messages or output on Windows in some cases.
 
@@ -658,7 +681,7 @@ Rejected Ideas
   QPDFObjectHandle::getOwningQPDF() return a std::weak_ptr<QPDF>. Prior to #726 (
   QPDFObject/QPDFValue split, released in qpdf 11.0.0), getOwningQPDF() could return an invalid
   pointer if the owning QPDF disappeared, but this is no longer the case, which removes the main
-  motivation. QPDF 11 added QPDF::create() anyway though.
+  motivation. qpdf 11 added QPDF::create() anyway though.
 
   Removing raw QPDF* would look something like this. Note that you can't use std::make_shared<T>
   unless T has a public constructor.
