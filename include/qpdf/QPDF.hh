@@ -228,6 +228,10 @@ class QPDF
     QPDF_DLL
     void setSuppressWarnings(bool);
 
+    // Set the maximum number of warnings to output. Subsequent warnings are suppressed.
+    QPDF_DLL
+    void setMaxWarnings(int);
+
     // By default, QPDF will try to recover if it finds certain types of errors in PDF files.  If
     // turned off, it will throw an exception on the first such problem it finds without attempting
     // recovery.
@@ -1497,11 +1501,15 @@ class QPDF
         bool provided_password_is_hex_key{false};
         bool ignore_xref_streams{false};
         bool suppress_warnings{false};
+        int max_warnings{0};
         bool attempt_recovery{true};
         bool check_mode{false};
         std::shared_ptr<EncryptionParameters> encp;
         std::string pdf_version;
         std::map<QPDFObjGen, QPDFXRefEntry> xref_table;
+        // Various tables are indexed by object id, with potential size id + 1
+        int xref_table_max_id{std::numeric_limits<int>::max() - 1};
+        qpdf_offset_t xref_table_max_offset{0};
         std::set<int> deleted_objects;
         std::map<QPDFObjGen, ObjCache> obj_cache;
         std::set<QPDFObjGen> resolving;

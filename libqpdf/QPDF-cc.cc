@@ -332,6 +332,12 @@ QPDF::setSuppressWarnings(bool val)
 }
 
 void
+QPDF::setMaxWarnings(int val)
+{
+    m->suppress_warnings = val;
+}
+
+void
 QPDF::setAttemptRecovery(bool val)
 {
     m->attempt_recovery = val;
@@ -441,6 +447,12 @@ QPDF::parse(char const* password)
     // 30 characters to leave room for the startxref stuff.
     m->file->seek(0, SEEK_END);
     qpdf_offset_t end_offset = m->file->tell();
+    m->xref_table_max_offset = end_offset;
+    // Sanity check on object ids. All objects must appear in xref table / stream. In all realistic
+    // scenarios at least 3 bytes are required.
+    if (m->xref_table_max_id > m->xref_table_max_offset / 3) {
+        m->xref_table_max_id = static_cast<int>(m->xref_table_max_offset / 3);
+    }
     qpdf_offset_t start_offset = (end_offset > 1054 ? end_offset - 1054 : 0);
     PatternFinder sf(*this, &QPDF::findStartxref);
     qpdf_offset_t xref_offset = 0;
@@ -471,6 +483,10 @@ QPDF::parse(char const* password)
 
     initializeEncryption();
     m->parsed = true;
+    if (m->xref_table.size() > 0 && !getRoot().getKey("/Pages").isDictionary()) {
+        // QPDFs created from JSON have an empty xref table and no root object yet.
+        throw damagedPDF("", 0, "unable to find page tree");
+    }
 }
 
 void
@@ -490,6 +506,11 @@ QPDF::warn(QPDFExc const& e)
 {
     m->warnings.push_back(e);
     if (!m->suppress_warnings) {
+        if (m->max_warnings > 0 && m->warnings.size() > 20) {
+            *m->log->getWarn() << "WARNING: too many warnings - additional warnings suppressed\n";
+            m->suppress_warnings = true;
+            return;
+        }
         *m->log->getWarn() << "WARNING: " << m->warnings.back().what() << "\n";
     }
 }
@@ -560,7 +581,12 @@ QPDF::reconstruct_xref(QPDFExc& e)
             if ((t2.isInteger()) && (readToken(m->file, MAX_LEN).isWord("obj"))) {
                 int obj = QUtil::string_to_int(t1.getValue().c_str());
                 int gen = QUtil::string_to_int(t2.getValue().c_str());
-                insertReconstructedXrefEntry(obj, token_start, gen);
+                if (obj <= m->xref_table_max_id) {
+                    insertReconstructedXrefEntry(obj, token_start, gen);
+                } else {
+                    warn(damagedPDF(
+                        "", 0, "ignoring object with impossibly large id " + std::to_string(obj)));
+                }
             }
         } else if (!m->trailer.isInitialized() && t1.isWord("trailer")) {
             QPDFObjectHandle t = readTrailer();
@@ -690,7 +716,7 @@ QPDF::read_xref(qpdf_offset_t xref_offset)
     int size = m->trailer.getKey("/Size").getIntValueAsInt();
     int max_obj = 0;
     if (!m->xref_table.empty()) {
-        max_obj = (*(m->xref_table.rbegin())).first.getObj();
+        max_obj = m->xref_table.rbegin()->first.getObj();
     }
     if (!m->deleted_objects.empty()) {
         max_obj = std::max(max_obj, *(m->deleted_objects.rbegin()));
@@ -893,9 +919,8 @@ QPDF::read_xrefEntry(qpdf_offset_t& f1, int& f2, char& type)
     if (QUtil::is_space(*p++) && (*p == 'f' || *p == 'n')) {
         // C++20: [[likely]]
         type = *p;
-        ++p;
-        ++p; // No test for valid line[19].
-        if ((*p == '\n' || *p == '\r') && f1_len == 10 && f2_len == 5) {
+        // No test for valid line[19].
+        if (*(++p) && *(++p) && (*p == '\n' || *p == '\r') && f1_len == 10 && f2_len == 5) {
             // C++20: [[likely]]
             return true;
         }
@@ -1104,6 +1129,11 @@ QPDF::processXRefIndex(
             if (val.isInteger()) {
                 if (i % 2) {
                     auto count = val.getIntValue();
+                    if (count <= 0) {
+                        throw damaged(
+                            "Cross-reference stream section claims to contain " +
+                            std::to_string(count) + " entries");
+                    }
                     // We are guarding against the possibility of num_entries * entry_size
                     // overflowing. We are not checking that entries are in ascending order as
                     // required by the spec, which probably should generate a warning. We are also
@@ -1244,8 +1274,18 @@ QPDF::insertXrefEntry(int obj, int f0, qpdf_offset_t f1, int f2)
     // If there is already an entry for this object and generation in the table, it means that a
     // later xref table has registered this object.  Disregard this one.
 
+    if (obj > m->xref_table_max_id) {
+        // ignore impossibly large object ids or object ids > Size.
+        return;
+    }
+
     if (m->deleted_objects.count(obj)) {
         QTC::TC("qpdf", "QPDF xref deleted object");
+        return;
+    }
+
+    if (f0 == 2 && static_cast<int>(f1) == obj) {
+        warn(damagedPDF("xref stream", "self-referential object stream " + std::to_string(obj)));
         return;
     }
 
@@ -1285,12 +1325,11 @@ QPDF::insertFreeXrefEntry(QPDFObjGen og)
 void
 QPDF::insertReconstructedXrefEntry(int obj, qpdf_offset_t f1, int f2)
 {
-    // Various tables are indexed by object id, with potential size id + 1
-    constexpr static int max_id = std::numeric_limits<int>::max() - 1;
-    if (!(obj > 0 && obj <= max_id && 0 <= f2 && f2 < 65535)) {
+    if (!(obj > 0 && obj <= m->xref_table_max_id && 0 <= f2 && f2 < 65535)) {
         QTC::TC("qpdf", "QPDF xref overwrite invalid objgen");
         return;
     }
+
     QPDFObjGen og(obj, f2);
     if (!m->deleted_objects.count(obj)) {
         // deleted_objects stores the uncompressed objects removed from the xref table at the start
@@ -1900,6 +1939,18 @@ QPDF::resolveObjectsInStream(int obj_stream_number)
 
         int num = QUtil::string_to_int(tnum.getValue().c_str());
         long long offset = QUtil::string_to_int(toffset.getValue().c_str());
+        if (num > m->xref_table_max_id) {
+            continue;
+        }
+        if (num == obj_stream_number) {
+            QTC::TC("qpdf", "QPDF ignore self-referential object stream");
+            warn(damagedPDF(
+                input,
+                m->last_object_description,
+                input->getLastOffset(),
+                "object stream claims to contain itself"));
+            continue;
+        }
         offsets[num] = toI(offset + first);
     }
 
@@ -1911,8 +1962,9 @@ QPDF::resolveObjectsInStream(int obj_stream_number)
     m->last_object_description += "object ";
     for (auto const& iter: offsets) {
         QPDFObjGen og(iter.first, 0);
-        QPDFXRefEntry const& entry = m->xref_table[og];
-        if ((entry.getType() == 2) && (entry.getObjStreamNumber() == obj_stream_number)) {
+        auto entry = m->xref_table.find(og);
+        if (entry != m->xref_table.end() && entry->second.getType() == 2 &&
+            entry->second.getObjStreamNumber() == obj_stream_number) {
             int offset = iter.second;
             input->seek(offset, SEEK_SET);
             QPDFObjectHandle oh = readObjectInStream(input, iter.first);
