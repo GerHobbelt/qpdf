@@ -14,10 +14,10 @@
 #include <qpdf/Pl_RC4.hh>
 #include <qpdf/Pl_StdioFile.hh>
 #include <qpdf/QIntC.hh>
-#include <qpdf/QPDF.hh>
 #include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QPDF_Name.hh>
 #include <qpdf/QPDF_String.hh>
+#include <qpdf/QPDF_private.hh>
 #include <qpdf/QTC.hh>
 #include <qpdf/QUtil.hh>
 #include <qpdf/RC4.hh>
@@ -1381,7 +1381,7 @@ QPDFWriter::unparseObject(
             }
         }
 
-        if (extensions.isInitialized()) {
+        if (extensions) {
             std::set<std::string> keys = extensions.getKeys();
             if (keys.count("/ADBE") > 0) {
                 have_extensions_adbe = true;
@@ -1412,7 +1412,7 @@ QPDFWriter::unparseObject(
             }
         }
 
-        if (extensions.isInitialized()) {
+        if (extensions) {
             QTC::TC("qpdf", "QPDFWriter preserve Extensions");
             QPDFObjectHandle adbe = extensions.getKey("/ADBE");
             if (adbe.isDictionary() &&
@@ -2077,8 +2077,8 @@ void
 QPDFWriter::initializeTables(size_t extra)
 {
     auto size = QIntC::to_size(QPDF::Writer::tableSize(m->pdf) + 100) + extra;
-    m->obj.initialize(size);
-    m->new_obj.initialize(size);
+    m->obj.resize(size);
+    m->new_obj.resize(size);
 }
 
 void

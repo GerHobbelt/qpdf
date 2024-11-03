@@ -325,7 +325,7 @@ QPDF::JSONReactor::anyErrors() const
 void
 QPDF::JSONReactor::containerStart()
 {
-    if (next_obj.isInitialized()) {
+    if (next_obj) {
         stack.emplace_back(next_state, std::move(next_obj));
         next_obj = QPDFObjectHandle();
     } else {
@@ -397,14 +397,12 @@ QPDF::JSONReactor::containerEnd(JSON const& value)
                     QTC::TC("qpdf", "QPDF_json data datafile both or neither");
                     error(
                         value.getStart(),
-                        "new \"stream\" must have exactly one of \"data\" or "
-                        "\"datafile\"");
+                        "new \"stream\" must have exactly one of \"data\" or \"datafile\"");
                 } else if (saw_datafile) {
                     QTC::TC("qpdf", "QPDF_json data and datafile");
                     error(
                         value.getStart(),
-                        "existing \"stream\" may at most one of \"data\" or "
-                        "\"datafile\"");
+                        "existing \"stream\" may at most one of \"data\" or \"datafile\"");
                 } else {
                     QTC::TC("qpdf", "QPDF_json no stream data in update mode");
                 }
@@ -427,15 +425,15 @@ QPDF::JSONReactor::containerEnd(JSON const& value)
 void
 QPDF::JSONReactor::replaceObject(QPDFObjectHandle&& replacement, JSON const& value)
 {
-    if (replacement.isIndirect()) {
+    auto& tos = stack.back();
+    auto og = tos.object.getObjGen();
+    if (replacement.isIndirect() && !(replacement.isStream() && replacement.getObjGen() == og)) {
         error(
             replacement.getParsedOffset(),
             "the value of an object may not be an indirect object reference");
         return;
     }
-    auto& tos = stack.back();
-    auto og = tos.object.getObjGen();
-    this->pdf.replaceObject(og, replacement);
+    pdf.replaceObject(og, replacement);
     next_obj = pdf.getObject(og);
     setObjectDescription(tos.object, value);
 }
@@ -560,7 +558,7 @@ QPDF::JSONReactor::dictionaryItem(std::string const& key, JSON const& value)
             throw std::logic_error("stack empty in st_object_top");
         }
         auto& tos = stack.back();
-        if (!tos.object.isInitialized()) {
+        if (!tos.object) {
             throw std::logic_error("current object uninitialized in st_object_top");
         }
         if (key == "value") {
@@ -575,8 +573,11 @@ QPDF::JSONReactor::dictionaryItem(std::string const& key, JSON const& value)
                 if (tos.object.isStream()) {
                     QTC::TC("qpdf", "QPDF_json updating existing stream");
                 } else {
-                    this->this_stream_needs_data = true;
-                    replaceObject(pdf.reserveStream(tos.object.getObjGen()), value);
+                    this_stream_needs_data = true;
+                    replaceObject(
+                        QPDF_Stream::create(
+                            &pdf, tos.object.getObjGen(), QPDFObjectHandle::newDictionary(), 0, 0),
+                        value);
                 }
                 next_obj = tos.object;
             } else {
@@ -592,8 +593,8 @@ QPDF::JSONReactor::dictionaryItem(std::string const& key, JSON const& value)
             this->saw_value = true;
             // The trailer must be a dictionary, so we can use setNextStateIfDictionary.
             if (setNextStateIfDictionary("trailer.value", value, st_object)) {
-                this->pdf.m->trailer = makeObject(value);
-                setObjectDescription(this->pdf.m->trailer, value);
+                pdf.m->xref_table.trailer = makeObject(value);
+                setObjectDescription(this->pdf.m->xref_table.trailer, value);
             }
         } else if (key == "stream") {
             // Don't need to set saw_stream here since there's already an error.
@@ -766,7 +767,7 @@ QPDF::JSONReactor::makeObject(JSON const& value)
             result = QPDFObjectHandle::newNull();
         }
     }
-    if (!result.isInitialized()) {
+    if (!result) {
         throw std::logic_error("JSONReactor::makeObject didn't initialize the object");
     }
 
