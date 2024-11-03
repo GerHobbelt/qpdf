@@ -30,6 +30,7 @@
 #include <qpdf/QUtil.hh>
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <climits>
 #include <cstdlib>
@@ -148,7 +149,7 @@ QPDFObjectHandle::TokenFilter::write(std::string const& str)
 void
 QPDFObjectHandle::TokenFilter::writeToken(QPDFTokenizer::Token const& token)
 {
-    std::string value = token.getRawValue();
+    std::string const& value = token.getRawValue();
     write(value.c_str(), value.length());
 }
 
@@ -263,7 +264,23 @@ char const*
 QPDFObjectHandle::getTypeName() const
 #endif
 {
-    return obj ? obj->getTypeName() : "uninitialized";
+    static constexpr std::array<char const*, 15> tn{
+        "uninitialized",
+        "reserved",
+        "null",
+        "boolean",
+        "integer",
+        "real",
+        "string",
+        "name",
+        "array",
+        "dictionary",
+        "stream",
+        "operator",
+        "inline-image",
+        "unresolved",
+        "destroyed"};
+    return obj ? tn[getTypeCode()] : "uninitialized";
 }
 
 QPDF_Array*
@@ -2147,7 +2164,7 @@ QPDFObjectHandle::parseContentStream_data(
         qpdf_offset_t offset = input->getLastOffset();
         input->seek(offset, SEEK_SET);
         auto obj =
-            QPDFParser(input, "content", tokenizer, nullptr, context, false).parse(empty, true);
+            QPDFParser(*input, "content", tokenizer, nullptr, context, false).parse(empty, true);
         if (!obj.isInitialized()) {
             // EOF
             break;
@@ -2206,7 +2223,7 @@ QPDFObjectHandle::parse(
     StringDecrypter* decrypter,
     QPDF* context)
 {
-    return QPDFParser(input, object_description, tokenizer, decrypter, context, false)
+    return QPDFParser(*input, object_description, tokenizer, decrypter, context, false)
         .parse(empty, false);
 }
 
@@ -2528,7 +2545,7 @@ QPDFObjectHandle::typeWarning(char const* expected_type, std::string const& warn
             description,
             0,
             std::string("operation for ") + expected_type + " attempted on object of type " +
-                obj->getTypeName() + ": " + warning));
+                QPDFObjectHandle(*this).getTypeName() + ": " + warning));
 }
 
 #ifndef QPDF_FUTURE
@@ -2565,7 +2582,7 @@ QPDFObjectHandle::assertType(char const* type_name, bool istype) const
     if (!istype) {
         throw std::runtime_error(
             std::string("operation for ") + type_name + " attempted on object of type " +
-            (obj ? obj->getTypeName() : "uninitialized"));
+            QPDFObjectHandle(*this).getTypeName());
     }
 }
 
