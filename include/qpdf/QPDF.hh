@@ -228,9 +228,9 @@ class QPDF
     QPDF_DLL
     void setSuppressWarnings(bool);
 
-    // Set the maximum number of warnings to output. Subsequent warnings are suppressed.
+    // Set the maximum number of warnings. A QPDFExc is thrown if the limit is exceeded.
     QPDF_DLL
-    void setMaxWarnings(int);
+    void setMaxWarnings(size_t);
 
     // By default, QPDF will try to recover if it finds certain types of errors in PDF files.  If
     // turned off, it will throw an exception on the first such problem it finds without attempting
@@ -796,12 +796,13 @@ class QPDF
     class Resolver
     {
         friend class QPDFObject;
+        friend class QPDF_Unresolved;
 
       private:
-        static void
-        resolve(QPDF* qpdf, QPDFObjGen const& og)
+        static QPDFObject*
+        resolved(QPDF* qpdf, QPDFObjGen og)
         {
-            qpdf->resolve(og);
+            return qpdf->resolve(og);
         }
     };
 
@@ -1061,7 +1062,7 @@ class QPDF
         QPDFObjGen exp_og,
         QPDFObjGen& og,
         bool skip_cache_if_in_xref);
-    void resolve(QPDFObjGen og);
+    QPDFObject* resolve(QPDFObjGen og);
     void resolveObjectsInStream(int obj_stream_number);
     void stopOnError(std::string const& message);
     QPDFObjectHandle reserveObjectIfNotExists(QPDFObjGen const& og);
@@ -1501,7 +1502,7 @@ class QPDF
         bool provided_password_is_hex_key{false};
         bool ignore_xref_streams{false};
         bool suppress_warnings{false};
-        int max_warnings{0};
+        size_t max_warnings{0};
         bool attempt_recovery{true};
         bool check_mode{false};
         std::shared_ptr<EncryptionParameters> encp;
@@ -1515,6 +1516,7 @@ class QPDF
         std::set<QPDFObjGen> resolving;
         QPDFObjectHandle trailer;
         std::vector<QPDFObjectHandle> all_pages;
+        bool invalid_page_found{false};
         std::map<QPDFObjGen, int> pageobj_to_pages_pos;
         bool pushed_inherited_attributes_to_pages{false};
         bool ever_pushed_inherited_attributes_to_pages{false};

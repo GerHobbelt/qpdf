@@ -314,18 +314,18 @@ class QPDF::JSONReactor: public JSON::Reactor
 void
 QPDF::JSONReactor::error(qpdf_offset_t offset, std::string const& msg)
 {
-    this->errors = true;
+    errors = true;
     std::string object = this->cur_object;
     if (is->getName() != pdf.getFilename()) {
         object += " from " + is->getName();
     }
-    this->pdf.warn(qpdf_e_json, object, offset, msg);
+    pdf.warn(qpdf_e_json, object, offset, msg);
 }
 
 bool
 QPDF::JSONReactor::anyErrors() const
 {
-    return this->errors;
+    return errors;
 }
 
 void

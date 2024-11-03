@@ -332,9 +332,9 @@ QPDF::setSuppressWarnings(bool val)
 }
 
 void
-QPDF::setMaxWarnings(int val)
+QPDF::setMaxWarnings(size_t val)
 {
-    m->suppress_warnings = val;
+    m->max_warnings = val;
 }
 
 void
@@ -504,13 +504,11 @@ QPDF::inParse(bool v)
 void
 QPDF::warn(QPDFExc const& e)
 {
+    if (m->max_warnings > 0 && m->warnings.size() >= m->max_warnings) {
+        stopOnError("Too many warnings - file is too badly damaged");
+    }
     m->warnings.push_back(e);
     if (!m->suppress_warnings) {
-        if (m->max_warnings > 0 && m->warnings.size() > 20) {
-            *m->log->getWarn() << "WARNING: too many warnings - additional warnings suppressed\n";
-            m->suppress_warnings = true;
-            return;
-        }
         *m->log->getWarn() << "WARNING: " << m->warnings.back().what() << "\n";
     }
 }
@@ -542,6 +540,15 @@ QPDF::reconstruct_xref(QPDFExc& e)
         // qpdf is throwing many fewer exceptions while parsing. Most situations are warnings now.
         throw e;
     }
+
+    // If recovery generates more than 1000 warnings, the file is so severely damaged that there
+    // probably is no point trying to continue.
+    const auto max_warnings = m->warnings.size() + 1000U;
+    auto check_warnings = [this, max_warnings]() {
+        if (m->warnings.size() > max_warnings) {
+            throw damagedPDF("", 0, "too many errors while reconstructing cross-reference table");
+        }
+    };
 
     m->reconstructed_xref = true;
     // We may find more objects, which may contain dangling references.
@@ -596,6 +603,7 @@ QPDF::reconstruct_xref(QPDFExc& e)
                 setTrailer(t);
             }
         }
+        check_warnings();
         m->file->seek(next_line_start, SEEK_SET);
         line_start = next_line_start;
     }
@@ -622,6 +630,7 @@ QPDF::reconstruct_xref(QPDFExc& e)
                 max_offset = offset;
                 setTrailer(oh.getDict());
             }
+            check_warnings();
         }
         if (max_offset > 0) {
             try {
@@ -641,7 +650,19 @@ QPDF::reconstruct_xref(QPDFExc& e)
 
         throw damagedPDF("", 0, "unable to find trailer dictionary while recovering damaged file");
     }
-
+    if (m->xref_table.empty()) {
+        // We cannot check for an empty xref table in parse because empty tables are valid when
+        // creating QPDF objects from JSON.
+        throw damagedPDF("", 0, "unable to find objects while recovering damaged file");
+    }
+    check_warnings();
+    if (!m->parsed) {
+        getAllPages();
+        check_warnings();
+        if (m->all_pages.empty()) {
+            throw damagedPDF("", 0, "unable to find any pages while recovering damaged file");
+        }
+    }
     // We could iterate through the objects looking for streams and try to find objects inside of
     // them, but it's probably not worth the trouble.  Acrobat can't recover files with any errors
     // in an xref stream, and this would be a real long shot anyway.  If we wanted to do anything
@@ -1826,11 +1847,11 @@ QPDF::readObjectAtOffset(
     return oh;
 }
 
-void
+QPDFObject*
 QPDF::resolve(QPDFObjGen og)
 {
     if (!isUnresolved(og)) {
-        return;
+        return m->obj_cache[og].object.get();
     }
 
     if (m->resolving.count(og)) {
@@ -1839,7 +1860,7 @@ QPDF::resolve(QPDFObjGen og)
         QTC::TC("qpdf", "QPDF recursion loop in resolve");
         warn(damagedPDF("", "loop detected resolving object " + og.unparse(' ')));
         updateCache(og, QPDF_Null::create(), -1, -1);
-        return;
+        return m->obj_cache[og].object.get();
     }
     ResolveRecorder rr(this, og);
 
@@ -1880,6 +1901,7 @@ QPDF::resolve(QPDFObjGen og)
 
     auto result(m->obj_cache[og].object);
     result->setDefaultDescription(this, og);
+    return result.get();
 }
 
 void
