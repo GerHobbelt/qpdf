@@ -572,18 +572,13 @@ QPDF::reconstruct_xref(QPDFExc& e)
     m->file->seek(0, SEEK_END);
     qpdf_offset_t eof = m->file->tell();
     m->file->seek(0, SEEK_SET);
-    qpdf_offset_t line_start = 0;
-    // Don't allow very long tokens here during recovery.
-    static size_t const MAX_LEN = 100;
+    // Don't allow very long tokens here during recovery. All the interesting tokens are covered.
+    static size_t const MAX_LEN = 10;
     while (m->file->tell() < eof) {
-        m->file->findAndSkipNextEOL();
-        qpdf_offset_t next_line_start = m->file->tell();
-        m->file->seek(line_start, SEEK_SET);
         QPDFTokenizer::Token t1 = readToken(m->file, MAX_LEN);
         qpdf_offset_t token_start = m->file->tell() - toO(t1.getValue().length());
-        if (token_start >= next_line_start) {
-            // don't process yet -- wait until we get to the line containing this token
-        } else if (t1.isInteger()) {
+        if (t1.isInteger()) {
+            auto pos = m->file->tell();
             QPDFTokenizer::Token t2 = readToken(m->file, MAX_LEN);
             if ((t2.isInteger()) && (readToken(m->file, MAX_LEN).isWord("obj"))) {
                 int obj = QUtil::string_to_int(t1.getValue().c_str());
@@ -595,17 +590,19 @@ QPDF::reconstruct_xref(QPDFExc& e)
                         "", 0, "ignoring object with impossibly large id " + std::to_string(obj)));
                 }
             }
+            m->file->seek(pos, SEEK_SET);
         } else if (!m->trailer.isInitialized() && t1.isWord("trailer")) {
+            auto pos = m->file->tell();
             QPDFObjectHandle t = readTrailer();
             if (!t.isDictionary()) {
                 // Oh well.  It was worth a try.
             } else {
                 setTrailer(t);
             }
+            m->file->seek(pos, SEEK_SET);
         }
         check_warnings();
-        m->file->seek(next_line_start, SEEK_SET);
-        line_start = next_line_start;
+        m->file->findAndSkipNextEOL();
     }
     m->deleted_objects.clear();
 
@@ -657,9 +654,11 @@ QPDF::reconstruct_xref(QPDFExc& e)
     }
     check_warnings();
     if (!m->parsed) {
+        m->parsed = true;
         getAllPages();
         check_warnings();
         if (m->all_pages.empty()) {
+            m->parsed = false;
             throw damagedPDF("", 0, "unable to find any pages while recovering damaged file");
         }
     }
@@ -1465,7 +1464,8 @@ QPDF::readTrailer()
 {
     qpdf_offset_t offset = m->file->tell();
     bool empty = false;
-    auto object = QPDFParser(m->file, "trailer", m->tokenizer, nullptr, this).parse(empty, false);
+    auto object =
+        QPDFParser(m->file, "trailer", m->tokenizer, nullptr, this, true).parse(empty, false);
     if (empty) {
         // Nothing in the PDF spec appears to allow empty objects, but they have been encountered in
         // actual PDF files and Adobe Reader appears to ignore them.
@@ -1487,8 +1487,9 @@ QPDF::readObject(std::string const& description, QPDFObjGen og)
 
     StringDecrypter decrypter{this, og};
     StringDecrypter* decrypter_ptr = m->encp->encrypted ? &decrypter : nullptr;
-    auto object = QPDFParser(m->file, m->last_object_description, m->tokenizer, decrypter_ptr, this)
-                      .parse(empty, false);
+    auto object =
+        QPDFParser(m->file, m->last_object_description, m->tokenizer, decrypter_ptr, this, true)
+            .parse(empty, false);
     if (empty) {
         // Nothing in the PDF spec appears to allow empty objects, but they have been encountered in
         // actual PDF files and Adobe Reader appears to ignore them.
@@ -1607,7 +1608,7 @@ QPDF::readObjectInStream(std::shared_ptr<InputSource>& input, int obj)
     m->last_object_description += " 0";
 
     bool empty = false;
-    auto object = QPDFParser(input, m->last_object_description, m->tokenizer, nullptr, this)
+    auto object = QPDFParser(input, m->last_object_description, m->tokenizer, nullptr, this, true)
                       .parse(empty, false);
     if (empty) {
         // Nothing in the PDF spec appears to allow empty objects, but they have been encountered in
@@ -2097,30 +2098,52 @@ QPDF::newStream(std::string const& data)
 }
 
 QPDFObjectHandle
-QPDF::reserveObjectIfNotExists(QPDFObjGen const& og)
-{
-    if (!isCached(og) && m->xref_table.count(og) == 0) {
-        updateCache(og, QPDF_Reserved::create(), -1, -1);
-        return newIndirect(og, m->obj_cache[og].object);
-    } else {
-        return getObject(og);
-    }
-}
-
-QPDFObjectHandle
 QPDF::reserveStream(QPDFObjGen const& og)
 {
     return {QPDF_Stream::create(this, og, QPDFObjectHandle::newDictionary(), 0, 0)};
 }
 
+std::shared_ptr<QPDFObject>
+QPDF::getObjectForParser(int id, int gen, bool parse_pdf)
+{
+    // This method is called by the parser and therefore must not resolve any objects.
+    auto og = QPDFObjGen(id, gen);
+    if (auto iter = m->obj_cache.find(og); iter != m->obj_cache.end()) {
+        return iter->second.object;
+    }
+    if (m->xref_table.count(og) || !m->parsed) {
+        return m->obj_cache.insert({og, QPDF_Unresolved::create(this, og)}).first->second.object;
+    }
+    if (parse_pdf) {
+        return QPDF_Null::create();
+    }
+    return m->obj_cache.insert({og, QPDF_Null::create(this, og)}).first->second.object;
+}
+
+std::shared_ptr<QPDFObject>
+QPDF::getObjectForJSON(int id, int gen)
+{
+    auto og = QPDFObjGen(id, gen);
+    auto [it, inserted] = m->obj_cache.try_emplace(og);
+    auto& obj = it->second.object;
+    if (inserted) {
+        obj = (m->parsed && !m->xref_table.count(og)) ? QPDF_Null::create(this, og)
+                                                      : QPDF_Unresolved::create(this, og);
+    }
+    return obj;
+}
+
 QPDFObjectHandle
 QPDF::getObject(QPDFObjGen const& og)
 {
-    // This method is called by the parser and therefore must not resolve any objects.
-    if (!isCached(og)) {
-        m->obj_cache[og] = ObjCache(QPDF_Unresolved::create(this, og), -1, -1);
+    if (auto it = m->obj_cache.find(og); it != m->obj_cache.end()) {
+        return {it->second.object};
+    } else if (m->parsed && !m->xref_table.count(og)) {
+        return QPDF_Null::create();
+    } else {
+        auto result = m->obj_cache.try_emplace(og, QPDF_Unresolved::create(this, og), -1, -1);
+        return {result.first->second.object};
     }
-    return newIndirect(og, m->obj_cache[og].object);
 }
 
 QPDFObjectHandle
