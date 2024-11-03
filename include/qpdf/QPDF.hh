@@ -786,11 +786,7 @@ class QPDF
     std::shared_ptr<QPDFObject> getObjectForParser(int id, int gen, bool parse_pdf);
     std::shared_ptr<QPDFObject> getObjectForJSON(int id, int gen);
     void removeObject(QPDFObjGen og);
-    void updateCache(
-        QPDFObjGen const& og,
-        std::shared_ptr<QPDFObject> const& object,
-        qpdf_offset_t end_before_space,
-        qpdf_offset_t end_after_space);
+    void updateCache(QPDFObjGen const& og, std::shared_ptr<QPDFObject> const& object);
     static QPDFExc damagedPDF(
         InputSource& input,
         std::string const& object,
@@ -827,7 +823,6 @@ class QPDF
 
     // For QPDFWriter:
 
-    std::map<QPDFObjGen, QPDFXRefEntry> const& getXRefTableInternal();
     template <typename T>
     void optimize_internal(
         T const& object_stream_data,
@@ -836,6 +831,7 @@ class QPDF
     void optimize(
         QPDFWriter::ObjTable const& obj,
         std::function<int(QPDFObjectHandle&)> skip_stream_parameters);
+    void optimize(Xref_table const& obj);
     size_t tableSize();
 
     // Get lists of all objects in order according to the part of a linearized file that they belong
@@ -935,6 +931,7 @@ class QPDF
     QPDFObjectHandle
     getUncompressedObject(QPDFObjectHandle&, std::map<int, int> const& object_stream_data);
     QPDFObjectHandle getUncompressedObject(QPDFObjectHandle&, QPDFWriter::ObjTable const& obj);
+    QPDFObjectHandle getUncompressedObject(QPDFObjectHandle&, Xref_table const& obj);
     int lengthNextN(int first_object, int n);
     void
     checkHPageOffset(std::vector<QPDFObjectHandle> const& pages, std::map<int, int>& idx_to_obj);
@@ -980,6 +977,7 @@ class QPDF
         std::function<int(QPDFObjectHandle&)> skip_stream_parameters);
     void filterCompressedObjects(std::map<int, int> const& object_stream_data);
     void filterCompressedObjects(QPDFWriter::ObjTable const& object_stream_data);
+    void filterCompressedObjects(Xref_table const& object_stream_data);
 
     // JSON import
     void importJSON(std::shared_ptr<InputSource>, bool must_be_complete);
