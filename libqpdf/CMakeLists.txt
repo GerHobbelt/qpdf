@@ -107,7 +107,6 @@ set(libqpdf_SOURCES
   QPDF_encryption.cc
   QPDF_json.cc
   QPDF_linearization.cc
-  QPDF_objects.cc
   QPDF_optimization.cc
   QPDF_pages.cc
   QTC.cc
@@ -159,7 +158,7 @@ if(NOT EXTERNAL_LIBS)
     list(APPEND dep_link_libraries ${pc_zlib_LIBRARIES})
   else()
     find_path(ZLIB_H_PATH zlib.h)
-    find_library(ZLIB_LIB_PATH z zlib)
+    find_library(ZLIB_LIB_PATH NAMES z zd zlib zlibd)
     if(ZLIB_H_PATH AND ZLIB_LIB_PATH)
       list(APPEND dep_include_directories ${ZLIB_H_PATH})
       list(APPEND dep_link_libraries ${ZLIB_LIB_PATH})
